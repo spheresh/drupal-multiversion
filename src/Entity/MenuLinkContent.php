@@ -2,7 +2,6 @@
 
 namespace Drupal\multiversion\Entity;
 
-use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\menu_link_content\Entity\MenuLinkContent as CoreMenuLinkContent;
 
 class MenuLinkContent extends CoreMenuLinkContent {
