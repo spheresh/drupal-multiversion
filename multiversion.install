@@ -546,7 +546,7 @@ function multiversion_update_8109() {
   $entity_type = $update_manager->getEntityType($entity_type_id)
     ->setHandlerClass('storage_schema', RedirectStorageSchema::class);
   // Update entity type.
-  $entity_type_id->updateEntityType($entity_type);
+  $update_manager->updateEntityType($entity_type);
 
   if (\Drupal::moduleHandler()->moduleExists('redirect')) {
     $multiversion_settings = \Drupal::configFactory()->getEditable('multiversion.settings');
