@@ -121,3 +121,11 @@ services:
     tags:
       - { name: event_subscriber }
       - { name: backend_overridable }
+  multiversion.redirect_repository:
+    decorates: 'redirect.repository'
+    class: Drupal\multiversion\Redirect\RedirectRepository
+    arguments: ['@entity.manager', '@database', '@config.factory', '@workspace.manager']
+    public: false
+    decoration_priority: 50
+    tags:
+      - { name: backend_overridable }

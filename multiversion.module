@@ -103,7 +103,7 @@ function multiversion_entity_type_alter(array &$entity_types) {
   }
 
   if (isset($entity_types['redirect']) && $manager->allowToAlter($entity_types['redirect'])) {
-    $entity_types['redirect']->setHandlerClass('storage_schema', 'Drupal\multiversion\Entity\RedirectStorageSchema');
+    $entity_types['redirect']->setHandlerClass('storage_schema', 'Drupal\multiversion\Redirect\RedirectStorageSchema');
   }
 }
 

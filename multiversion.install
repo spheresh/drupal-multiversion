@@ -2,8 +2,7 @@
 
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\multiversion\Entity\RedirectStorageSchema;
-use Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface;
+use Drupal\multiversion\Redirect\RedirectStorageSchema;
 use Drupal\multiversion\Entity\Workspace;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\Driver\mysql\Connection;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\multiversion\Entity;
+namespace Drupal\multiversion\Redirect;
 
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\Sql\SqlContentEntityStorageSchema;
