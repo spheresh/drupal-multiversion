@@ -374,29 +374,6 @@ function multiversion_views_query_alter(ViewExecutable $view, QueryPluginBase $q
 }
 
 /**
- * Implements hook_query_TAG_alter().
- */
-function multiversion_query_entity_query_alter(AlterableInterface $query) {
-  $entity_type_id = $query->getMetaData('entity_type');
-  $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
-  if ($entity_type_id && \Drupal::service('multiversion.manager')->isEnabledEntityType($entity_type)) {
-    $revision_key = $entity_type->getKey('revision');
-    $data_table = $entity_type->getDataTable();
-    $active_workspace = \Drupal::service('workspace.manager')->getActiveWorkspace();
-    if ($data_table && $active_workspace instanceof WorkspaceInterface) {
-      if (!in_array($data_table, array_column($query->getTables(), 'table'))) {
-        $query->join(
-          $data_table,
-          NULL,
-          'base_table.' . $revision_key . '=' . $data_table . '.' . $revision_key
-        );
-      }
-      $query->condition($data_table . '.workspace', $active_workspace->id());
-    }
-  }
-}
-
-/**
  * Implements hook_element_info_alter().
  */
 function multiversion_element_info_alter(array &$types) {
