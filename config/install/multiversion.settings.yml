@@ -16,6 +16,7 @@ supported_entity_types:
   - content_moderation_state
   - replication_log
   - paragraph
+  - paragraphs_library_item
   - crop
   - poll
   - poll_choice
