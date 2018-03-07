@@ -125,6 +125,19 @@ trait ContentEntityStorageTrait {
   /**
    * {@inheritdoc}
    */
+  public function loadByProperties(array $values = []) {
+    // Build a query to fetch the entity IDs.
+    $entity_query = $this->getQuery();
+    $entity_query->useWorkspace($this->getWorkspaceId());
+    $entity_query->accessCheck(FALSE);
+    $this->buildPropertyQuery($entity_query, $values);
+    $result = $entity_query->execute();
+    return $result ? $this->loadMultiple($result) : [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function loadDeleted($id) {
     $entities = $this->loadMultipleDeleted([$id]);
     return isset($entities[$id]) ? $entities[$id] : NULL;
