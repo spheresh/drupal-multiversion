@@ -10,7 +10,7 @@ namespace Drupal\multiversion\Entity\Query;
 trait QueryTrait {
 
   /**
-   * @var null|string
+   * @var null|int
    */
   protected $workspaceId = NULL;
 
@@ -20,7 +20,9 @@ trait QueryTrait {
   protected $isDeleted = FALSE;
 
   /**
+   * @param int $id
    *
+   * @return \Drupal\multiversion\Entity\Query\QueryTrait
    */
   public function useWorkspace($id) {
     $this->workspaceId = $id;
@@ -58,6 +60,9 @@ trait QueryTrait {
         }
       }
 
+      // Set the workspace condition.
+      $this->condition('workspace', $this->getWorkspaceId());
+
       // Loading a revision is explicit. So when we try to load one we should do
       // so without a condition on the deleted flag.
       if (!$revision_query) {
@@ -65,6 +70,13 @@ trait QueryTrait {
       }
     }
     return $this;
+  }
+
+  /**
+   * Helper method to get the workspace ID to query.
+   */
+  protected function getWorkspaceId() {
+    return $this->workspaceId ?: \Drupal::service('workspace.manager')->getActiveWorkspace()->id();
   }
 
 }

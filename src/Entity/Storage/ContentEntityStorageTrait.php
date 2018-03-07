@@ -17,7 +17,7 @@ trait ContentEntityStorageTrait {
   protected $isDeleted = FALSE;
 
   /**
-   * @var integer
+   * @var int
    */
   protected $workspaceId = NULL;
 
