@@ -121,9 +121,3 @@ services:
     tags:
       - { name: event_subscriber }
       - { name: backend_overridable }
-  multiversion.access_check.node.revision:
-    decorates: 'access_check.node.revision'
-    class: Drupal\multiversion\Access\NodeRevisionAccessCheck
-    arguments: ['@entity.manager']
-    public: false
-    decoration_priority: 50

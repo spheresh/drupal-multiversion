@@ -30,6 +30,15 @@ class MultiversionServiceProvider extends ServiceProviderBase {
     catch (InvalidArgumentException $e) {
       // Do nothing, comment module is not installed.
     }
+
+    // Override the access_check.node.revision class with a new class.
+    try {
+      $definition = $container->getDefinition('access_check.node.revision');
+      $definition->setClass('Drupal\multiversion\Access\NodeRevisionAccessCheck');
+    }
+    catch (InvalidArgumentException $e) {
+      // Do nothing, Node module is not installed.
+    }
   }
 
 }
