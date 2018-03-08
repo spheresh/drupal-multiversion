@@ -61,7 +61,9 @@ trait QueryTrait {
       }
 
       // Set the workspace condition.
-      $this->condition('workspace', $this->getWorkspaceId());
+      if ($workspace_id = $this->getWorkspaceId()) {
+        $this->condition('workspace', $workspace_id);
+      }
 
       // Loading a revision is explicit. So when we try to load one we should do
       // so without a condition on the deleted flag.
@@ -76,7 +78,13 @@ trait QueryTrait {
    * Helper method to get the workspace ID to query.
    */
   protected function getWorkspaceId() {
-    return $this->workspaceId ?: \Drupal::service('workspace.manager')->getActiveWorkspace()->id();
+    if ($this->workspaceId) {
+      return $this->workspaceId;
+    }
+    if ($workspace = \Drupal::service('workspace.manager')->getActiveWorkspace()) {
+      $workspace->id();
+    }
+    return NULL;
   }
 
 }
