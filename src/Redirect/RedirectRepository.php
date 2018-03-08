@@ -6,6 +6,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Language\Language;
+use Drupal\Core\State\StateInterface;
 use Drupal\multiversion\Workspace\WorkspaceManagerInterface;
 use Drupal\redirect\Entity\Redirect;
 use Drupal\redirect\Exception\RedirectLoopException;
@@ -21,17 +22,27 @@ class RedirectRepository extends ContribRedirectRepository {
   private $workspaceManager;
 
   /**
+   * @var \Drupal\Core\State\StateInterface
+   */
+  private $state;
+
+  /**
    * {@inheritdoc}
    */
-  public function __construct(EntityManagerInterface $manager, Connection $connection, ConfigFactoryInterface $config_factory, WorkspaceManagerInterface $workspace_manager) {
+  public function __construct(EntityManagerInterface $manager, Connection $connection, ConfigFactoryInterface $config_factory, WorkspaceManagerInterface $workspace_manager, StateInterface $state) {
     parent::__construct($manager, $connection, $config_factory);
     $this->workspaceManager = $workspace_manager;
+    $this->state = $state;
   }
 
   /**
    * {@inheritdoc}
    */
   public function findMatchingRedirect($source_path, array $query = [], $language = Language::LANGCODE_NOT_SPECIFIED) {
+    $enabled = $this->state->get('multiversion.migration_done.redirect', FALSE);
+    if ($enabled) {
+      return parent::findMatchingRedirect($source_path, $query, $language);
+    }
     $hashes = [Redirect::generateHash($source_path, $query, $language)];
     if ($language != Language::LANGCODE_NOT_SPECIFIED) {
       $hashes[] = Redirect::generateHash($source_path, $query, Language::LANGCODE_NOT_SPECIFIED);
