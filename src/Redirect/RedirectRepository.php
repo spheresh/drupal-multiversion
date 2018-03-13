@@ -40,7 +40,7 @@ class RedirectRepository extends ContribRedirectRepository {
    */
   public function findMatchingRedirect($source_path, array $query = [], $language = Language::LANGCODE_NOT_SPECIFIED) {
     $enabled = $this->state->get('multiversion.migration_done.redirect', FALSE);
-    if ($enabled) {
+    if (!$enabled) {
       return parent::findMatchingRedirect($source_path, $query, $language);
     }
     $hashes = [Redirect::generateHash($source_path, $query, $language)];
