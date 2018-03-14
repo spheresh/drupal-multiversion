@@ -107,7 +107,7 @@ services:
   multiversion.alias_storage:
     decorates: 'path.alias_storage'
     class: Drupal\multiversion\AliasStorage
-    arguments: ['@database', '@module_handler', '@workspace.manager', '@entity_type.manager', '@state', '@database']
+    arguments: ['@database', '@module_handler', '@workspace.manager', '@entity_type.manager', '@state']
     public: false
     decoration_priority: 50
     tags:
