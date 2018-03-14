@@ -162,6 +162,14 @@ trait ContentEntityStorageTrait {
    * {@inheritdoc}
    */
   public function save(EntityInterface $entity) {
+    // When importing with default content we want to it to be treated like a
+    // replicate, and not as a new edit.
+    if (isset($entity->default_content)) {
+      list(, $hash) = explode('-', $entity->_rev->value);
+      $entity->_rev->revisions = [$hash];
+      $entity->_rev->new_edit = FALSE;
+    }
+
     // Every update is a new revision with this storage model.
     $entity->setNewRevision();
 
