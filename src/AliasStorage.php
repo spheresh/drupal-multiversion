@@ -41,20 +41,26 @@ class AliasStorage extends CoreAliasStorage {
   protected $state;
 
   /**
+   * @var \Drupal\Core\Database\Connection
+   */
+  private $database;
+
+  /**
    * {@inheritdoc}
    */
-  public function __construct(Connection $connection, ModuleHandlerInterface $module_handler, WorkspaceManagerInterface $workspace_manager, EntityTypeManagerInterface $entity_type_manager, StateInterface $state) {
+  public function __construct(Connection $connection, ModuleHandlerInterface $module_handler, WorkspaceManagerInterface $workspace_manager, EntityTypeManagerInterface $entity_type_manager, StateInterface $state, Connection $database) {
     parent::__construct($connection, $module_handler);
     $this->workspaceManager = $workspace_manager;
     $this->entityTypeManager = $entity_type_manager;
     $this->state = $state;
+    $this->database = $database;
   }
 
   /**
    * {@inheritdoc}
    */
   public function save($source, $alias, $langcode = LanguageInterface::LANGCODE_NOT_SPECIFIED, $pid = NULL) {
-    if (!$this->state->get('multiversion.migration_done', FALSE)) {
+    if (!$this->database->schema()->fieldExists('url_alias', 'workspace')) {
       return parent::save($source, $alias, $langcode, $pid);
     }
 
@@ -162,7 +168,7 @@ class AliasStorage extends CoreAliasStorage {
    * {@inheritdoc}
    */
   public function load($conditions) {
-    if (!$this->state->get('multiversion.migration_done', FALSE)) {
+    if (!$this->database->schema()->fieldExists('url_alias', 'workspace')) {
       return parent::load($conditions);
     }
 
@@ -195,7 +201,7 @@ class AliasStorage extends CoreAliasStorage {
    * {@inheritdoc}
    */
   public function lookupPathAlias($path, $langcode) {
-    if (!$this->state->get('multiversion.migration_done', FALSE)) {
+    if (!$this->database->schema()->fieldExists('url_alias', 'workspace')) {
       return parent::lookupPathAlias($path, $langcode);
     }
 
@@ -232,7 +238,7 @@ class AliasStorage extends CoreAliasStorage {
    * {@inheritdoc}
    */
   public function lookupPathSource($path, $langcode) {
-    if (!$this->state->get('multiversion.migration_done', FALSE)) {
+    if (!$this->database->schema()->fieldExists('url_alias', 'workspace')) {
       return parent::lookupPathSource($path, $langcode);
     }
 
@@ -269,7 +275,7 @@ class AliasStorage extends CoreAliasStorage {
    * {@inheritdoc}
    */
   public function aliasExists($alias, $langcode, $source = NULL) {
-    if (!$this->state->get('multiversion.migration_done', FALSE)) {
+    if (!$this->database->schema()->fieldExists('url_alias', 'workspace')) {
       return parent::aliasExists($alias, $langcode, $source);
     }
 
@@ -296,6 +302,9 @@ class AliasStorage extends CoreAliasStorage {
    * {@inheritdoc}
    */
   public function getAliasesForAdminListing($header, $keys = NULL) {
+    if (!$this->database->schema()->fieldExists('url_alias', 'workspace')) {
+      return parent::getAliasesForAdminListing($header, $keys);
+    }
     $query = $this->connection->select(static::TABLE)
       ->extend('Drupal\Core\Database\Query\PagerSelectExtender')
       ->extend('Drupal\Core\Database\Query\TableSortExtender');
