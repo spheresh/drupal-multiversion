@@ -208,15 +208,23 @@ class RevisionTreeIndex implements RevisionTreeIndexInterface {
 
     // The goal is to sort winning revision candidates from low to high. The
     // criteria are:
-    // 1. Non-deleted always win over deleted
-    // 2. Higher ASCII sort on revision hash wins
+    // 1. Non-deleted always win over deleted.
+    // 2. When IDs match, higher ASCII sort on revision hash wins.
+    // 3. Otherwise, the highest ID wins.
     if ($a_deleted && !$b_deleted) {
       return 1;
     }
     elseif (!$a_deleted && $b_deleted) {
       return -1;
     }
-    return ($a['#rev'] < $b['#rev']) ? 1 : -1;
+    list($a_id) = explode('-', $a['#rev']);
+    list($b_id) = explode('-', $b['#rev']);
+    if ($a_id === $b_id) {
+      return ($a['#rev'] < $b['#rev']) ? 1 : -1;
+    }
+    else {
+      return ($a_id < $b_id) ? 1 : -1;
+    }
   }
 
   /**
