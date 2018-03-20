@@ -101,4 +101,11 @@ class MenuTreeStorage extends CoreMenuTreeStorage {
     return parent::findParent($link, $original);
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function purgeMultiple(array $ids) {
+    parent::purgeMultiple($ids);
+  }
+
 }

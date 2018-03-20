@@ -70,7 +70,9 @@ function multiversion_entity_type_alter(array &$entity_types) {
           break;
 
         case 'menu_link_content':
-          $entity_type->setClass('Drupal\multiversion\Entity\MenuLinkContent');
+          if ($manager->isEnabledEntityType($entity_type)) {
+            $entity_type->setClass('Drupal\multiversion\Entity\MenuLinkContent');
+          }
           $entity_type->setHandlerClass('storage', "$namespace\\MenuLinkContentStorage");
           break;
 
@@ -481,22 +483,30 @@ function multiversion_menu_links_discovered_alter(&$links) {
   // same link on different workspaces.
   // The old ID format is 'menu_link_content:ENTITY_UUID'.
   if (\Drupal::moduleHandler()->moduleExists('menu_link_content')) {
-    $entity_ids = \Drupal::entityQuery('menu_link_content')
-      ->condition('rediscover', TRUE)
-      ->execute();
-    $menu_link_content_entities = \Drupal::service('entity.manager')
-      ->getStorage('menu_link_content')
-      ->loadMultiple($entity_ids);
-    /** @var \Drupal\menu_link_content\MenuLinkContentInterface $menu_link_content */
-    foreach ($menu_link_content_entities as $menu_link_content) {
-      // Unset links with old ID format.
-      if (isset($links['menu_link_content:' . $menu_link_content->uuid()])) {
-        unset($links['menu_link_content:' . $menu_link_content->uuid()]);
+    $storage = \Drupal::entityTypeManager()->getStorage('menu_link_content');
+    if (\Drupal::service('multiversion.manager')->isEnabledEntityType($storage->getEntityType())) {
+      $entity_ids = \Drupal::entityQuery('menu_link_content')
+        ->condition('rediscover', TRUE)
+        ->execute();
+      $menu_link_content_entities = $storage->loadMultiple($entity_ids);
+      $links_to_purge = [];
+      /** @var \Drupal\menu_link_content\MenuLinkContentInterface $menu_link_content */
+      foreach ($menu_link_content_entities as $menu_link_content) {
+        // Unset links with old ID format.
+        if (isset($links['menu_link_content:' . $menu_link_content->uuid()])) {
+          $links_to_purge[] = 'menu_link_content:' . $menu_link_content->uuid();
+          unset($links['menu_link_content:' . $menu_link_content->uuid()]);
+        }
+        $id = 'menu_link_content:' . $menu_link_content->uuid() . ':' . $menu_link_content->id();
+        // Set links with the new ID format.
+        if (!isset($links[$id])) {
+          $links[$id] = $menu_link_content->getPluginDefinition();
+          // Set a new plugin class tha will handle new ID format.
+          $links[$id]['class'] = 'Drupal\multiversion\Plugin\Menu\MenuLinkContent';
+        }
       }
-      $id = 'menu_link_content:' . $menu_link_content->uuid() . ':' . $menu_link_content->id();
-      // Set links with the new ID format.
-      if (!isset($links[$id])) {
-        $links[$id] = $menu_link_content->getPluginDefinition();
+      if ($links_to_purge) {
+        \Drupal::service('menu.tree_storage')->purgeMultiple($links_to_purge);
       }
     }
   }
