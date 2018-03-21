@@ -8,11 +8,14 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\multiversion\Entity\WorkspaceInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Symfony\Component\DependencyInjection\ContainerAwareInterface;
+use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Exception\InvalidParameterException;
 
-class WorkspaceManager implements WorkspaceManagerInterface {
+class WorkspaceManager implements WorkspaceManagerInterface, ContainerAwareInterface {
   use StringTranslationTrait;
+  use ContainerAwareTrait;
 
   /**
    * @var \Symfony\Component\HttpFoundation\RequestStack
@@ -105,6 +108,10 @@ class WorkspaceManager implements WorkspaceManagerInterface {
    */
   public function getActiveWorkspaceId() {
     $request = $this->requestStack->getCurrentRequest();
+    if (empty($request)) {
+      return $this->container->getParameter('workspace.default');
+    }
+
     foreach ($this->getSortedNegotiators() as $negotiator) {
       if ($negotiator->applies($request)) {
         if ($workspace_id = $negotiator->getWorkspaceId($request)) {
