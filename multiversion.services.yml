@@ -69,7 +69,6 @@ services:
   multiversion.plugin.manager.block:
     decorates: plugin.manager.block
     class: Drupal\multiversion\Block\BlockManager
-    public: false
     decoration_priority: 50
     parent: default_plugin_manager
     arguments: ['@database', '@workspace.manager']
