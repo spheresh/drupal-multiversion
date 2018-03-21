@@ -9,42 +9,52 @@ use Drupal\multiversion\Workspace\WorkspaceManagerInterface;
 use Fhaculty\Graph\Graph;
 
 /**
+ * The revision tree index.
+ *
  * @todo: {@link https://www.drupal.org/node/2597444 Consider caching once/if
  * rev and rev tree indices are merged.}
  */
 class RevisionTreeIndex implements RevisionTreeIndexInterface {
 
   /**
+   * The key value factory service.
+   *
    * @var \Drupal\Core\KeyValueStore\KeyValueFactoryInterface
    */
   protected $keyValueFactory;
 
   /**
+   * The workspace manager service.
+   *
    * @var \Drupal\multiversion\Workspace\WorkspaceManagerInterface
    */
   protected $workspaceManager;
 
   /**
+   * The index factory service.
+   *
    * @var \Drupal\multiversion\Entity\Index\MultiversionIndexFactory
    */
   protected $indexFactory;
 
   /**
+   * The workspace ID.
+   *
    * @var string
    */
   protected $workspaceId;
 
   /**
-   * @var array
-   */
-  protected $cache = [];
-
-  /**
+   * Constructs the Revision Tree Index.
+   *
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
+   *   The key value factory service.
    * @param \Drupal\multiversion\Workspace\WorkspaceManagerInterface $workspace_manager
+   *   The workspace manager service.
    * @param \Drupal\multiversion\Entity\Index\MultiversionIndexFactory $index_factory
+   *   The index factory service.
    */
-  function __construct(KeyValueFactoryInterface $key_value_factory, WorkspaceManagerInterface $workspace_manager, MultiversionIndexFactory $index_factory) {
+  public function __construct(KeyValueFactoryInterface $key_value_factory, WorkspaceManagerInterface $workspace_manager, MultiversionIndexFactory $index_factory) {
     $this->keyValueFactory = $key_value_factory;
     $this->workspaceManager = $workspace_manager;
     $this->indexFactory = $index_factory;
@@ -84,10 +94,10 @@ class RevisionTreeIndex implements RevisionTreeIndexInterface {
    *
    * @param array $tree
    *   An associative array containing information about tree.
-   * @param array $rev_ids
+   * @param array $revision_ids
    *   An array to store all revision ID.
    */
-  protected function storeNodesId($tree, &$revision_ids) {
+  protected function storeNodesId(array $tree, array &$revision_ids) {
     foreach ($tree as $value) {
       $current_id = $value['#rev'];
       $revision_ids[$current_id] = $current_id;
@@ -107,13 +117,13 @@ class RevisionTreeIndex implements RevisionTreeIndexInterface {
    * @param int $parent
    *   Parent vertex Id.
    */
-  protected function generateEdges($revisions_array, $tree, $parent = -1 ) {
+  protected function generateEdges(array $revisions_array, array $tree, $parent = -1) {
     foreach ($tree as $item) {
       $current_id = $item['#rev'];
-      if($parent != -1) {
+      if ($parent != -1) {
         $revisions_array[$parent]->createEdgeTo($revisions_array[$current_id]);
       }
-      if(count($item['children'])) {
+      if (count($item['children'])) {
         $this->generateEdges($revisions_array, $item['children'], $current_id);
       }
     }
@@ -123,12 +133,14 @@ class RevisionTreeIndex implements RevisionTreeIndexInterface {
    * Generates vertices for Graph.
    *
    * @param Graph $graph
+   *   A graph object.
    * @param array $revision_ids
+   *   The revision ids to generate vertices for.
    *
    * @return array
    *   An array of vertices.
    */
-  protected function generateVertices(Graph $graph, $revision_ids) {
+  protected function generateVertices(Graph $graph, array $revision_ids) {
     foreach ($revision_ids as $id) {
       $ids[] = $id;
     }
@@ -208,15 +220,23 @@ class RevisionTreeIndex implements RevisionTreeIndexInterface {
 
     // The goal is to sort winning revision candidates from low to high. The
     // criteria are:
-    // 1. Non-deleted always win over deleted
-    // 2. Higher ASCII sort on revision hash wins
+    // 1. Non-deleted always win over deleted.
+    // 2. When IDs match, higher ASCII sort on revision hash wins.
+    // 3. Otherwise, the highest ID wins.
     if ($a_deleted && !$b_deleted) {
       return 1;
     }
     elseif (!$a_deleted && $b_deleted) {
       return -1;
     }
-    return ($a['#rev'] < $b['#rev']) ? 1 : -1;
+    list($a_id) = explode('-', $a['#rev']);
+    list($b_id) = explode('-', $b['#rev']);
+    if ($a_id === $b_id) {
+      return ($a['#rev'] < $b['#rev']) ? 1 : -1;
+    }
+    else {
+      return ($a_id < $b_id) ? 1 : -1;
+    }
   }
 
   /**
@@ -235,10 +255,14 @@ class RevisionTreeIndex implements RevisionTreeIndexInterface {
 
   /**
    * @param string $uuid
-   * @param $workspace_id
+   *   The UUID for get the key value store for.
+   * @param int|null $workspace_id
+   *   The workspace to get the key value store for.
+   *
    * @return \Drupal\Core\KeyValueStore\KeyValueStoreInterface
+   *   The key value store.
    */
-  protected function keyValueStore($uuid, $workspace_id = null) {
+  protected function keyValueStore($uuid, $workspace_id = NULL) {
     if (!is_numeric($workspace_id)) {
       $workspace_id = $this->getWorkspaceId();
     }
