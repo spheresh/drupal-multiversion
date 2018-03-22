@@ -70,9 +70,7 @@ function multiversion_entity_type_alter(array &$entity_types) {
           break;
 
         case 'menu_link_content':
-          if ($manager->isEnabledEntityType($entity_type)) {
-            $entity_type->setClass('Drupal\multiversion\Entity\MenuLinkContent');
-          }
+          $entity_type->setClass('Drupal\multiversion\Entity\MenuLinkContent');
           $entity_type->setHandlerClass('storage', "$namespace\\MenuLinkContentStorage");
           break;
 
@@ -490,14 +488,17 @@ function multiversion_menu_links_discovered_alter(&$links) {
         ->execute();
       $menu_link_content_entities = $storage->loadMultiple($entity_ids);
       $links_to_purge = [];
+      $replaced_ids = [];
       /** @var \Drupal\menu_link_content\MenuLinkContentInterface $menu_link_content */
       foreach ($menu_link_content_entities as $menu_link_content) {
         // Unset links with old ID format.
-        if (isset($links['menu_link_content:' . $menu_link_content->uuid()])) {
-          $links_to_purge[] = 'menu_link_content:' . $menu_link_content->uuid();
-          unset($links['menu_link_content:' . $menu_link_content->uuid()]);
+        $uuid = $menu_link_content->uuid();
+        if (isset($links["menu_link_content:$uuid"])) {
+          $links_to_purge[] = "menu_link_content:$uuid";
+          unset($links["menu_link_content:$uuid"]);
         }
-        $id = 'menu_link_content:' . $menu_link_content->uuid() . ':' . $menu_link_content->id();
+        $id = "menu_link_content:$uuid" . ':' . $menu_link_content->id();
+        $replaced_ids["menu_link_content:$uuid"] = $id;
         // Set links with the new ID format.
         if (!isset($links[$id])) {
           $links[$id] = $menu_link_content->getPluginDefinition();

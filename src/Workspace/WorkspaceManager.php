@@ -151,6 +151,11 @@ class WorkspaceManager implements WorkspaceManagerInterface, ContainerAwareInter
     // Clear cached entity storage handlers
     $this->entityTypeManager->clearCachedDefinitions();
 
+    // Rebuild menu links.
+    /** @var \Drupal\Core\Menu\MenuLinkManagerInterface $menu_link_manager */
+    $menu_link_manager = \Drupal::service('plugin.manager.menu.link');
+    $menu_link_manager->rebuild();
+
     return $this;
   }
 
