@@ -5,6 +5,7 @@ use Drupal\Core\Database\Query\AlterableInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\multiversion\Entity\MenuLinkContent;
 use Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface;
 use Drupal\multiversion\Entity\WorkspaceInterface;
 use Drupal\multiversion\MultiversionFieldItemList;
@@ -484,7 +485,6 @@ function multiversion_menu_links_discovered_alter(&$links) {
     $storage = \Drupal::entityTypeManager()->getStorage('menu_link_content');
     if (\Drupal::service('multiversion.manager')->isEnabledEntityType($storage->getEntityType())) {
       $entity_ids = \Drupal::entityQuery('menu_link_content')
-        ->condition('rediscover', TRUE)
         ->execute();
       $menu_link_content_entities = $storage->loadMultiple($entity_ids);
       $links_to_purge = [];
@@ -493,21 +493,24 @@ function multiversion_menu_links_discovered_alter(&$links) {
       foreach ($menu_link_content_entities as $menu_link_content) {
         // Unset links with old ID format.
         $uuid = $menu_link_content->uuid();
-        if (isset($links["menu_link_content:$uuid"])) {
-          $links_to_purge[] = "menu_link_content:$uuid";
-          unset($links["menu_link_content:$uuid"]);
-        }
-        $id = "menu_link_content:$uuid" . ':' . $menu_link_content->id();
-        $replaced_ids["menu_link_content:$uuid"] = $id;
-        // Set links with the new ID format.
-        if (!isset($links[$id])) {
-          $links[$id] = $menu_link_content->getPluginDefinition();
+        $old_id = "menu_link_content:$uuid";
+        if (isset($links[$old_id])) {
+          $links_to_purge[] = $old_id;
+          unset($links[$old_id]);
+          $new_id = "$old_id:" . $menu_link_content->id();
+          $links[$new_id] = $menu_link_content->getPluginDefinition();
           // Set a new plugin class tha will handle new ID format.
-          $links[$id]['class'] = 'Drupal\multiversion\Plugin\Menu\MenuLinkContent';
+          $links[$new_id]['class'] = 'Drupal\multiversion\Plugin\Menu\MenuLinkContent';
+          $replaced_ids[$old_id] = $new_id;
         }
       }
       if ($links_to_purge) {
         \Drupal::service('menu.tree_storage')->purgeMultiple($links_to_purge);
+      }
+      foreach ($links as $id => $link) {
+        if (!empty($link['parent']) && in_array($link['parent'], array_keys($replaced_ids))) {
+          $links[$id]['parent'] = $replaced_ids[$link['parent']];
+        }
       }
     }
   }
