@@ -487,12 +487,9 @@ function multiversion_menu_links_discovered_alter(&$links) {
       $workspaces = Workspace::loadMultiple();
       foreach ($workspaces as $workspace_id => $workspace) {
         $storage->useWorkspace($workspace_id);
-        $entity_ids = \Drupal::entityQuery('menu_link_content')
-          ->useWorkspace($workspace_id)
-          ->execute();
-        $menu_link_content_entities = $storage->loadMultiple($entity_ids);
+        $menu_link_content_entities = $storage->loadMultiple();
+        $new_ids = [];
         $links_to_purge = [];
-        $replaced_ids = [];
         /** @var \Drupal\menu_link_content\MenuLinkContentInterface $menu_link_content */
         foreach ($menu_link_content_entities as $menu_link_content) {
           // Unset links with old ID format.
@@ -502,8 +499,8 @@ function multiversion_menu_links_discovered_alter(&$links) {
           if (isset($links[$old_id])) {
             $links_to_purge[] = $old_id;
             unset($links[$old_id]);
-            $replaced_ids[$old_id] = $new_id;
           }
+          $new_ids[$old_id] = $new_id;
           $links[$new_id] = $menu_link_content->getPluginDefinition();
           // Set a new plugin class tha will handle new ID format.
           $links[$new_id]['class'] = 'Drupal\multiversion\Plugin\Menu\MenuLinkContent';
@@ -512,8 +509,8 @@ function multiversion_menu_links_discovered_alter(&$links) {
           \Drupal::service('menu.tree_storage')->purgeMultiple($links_to_purge);
         }
         foreach ($links as $id => $link) {
-          if (!empty($link['parent']) && in_array($link['parent'], array_keys($replaced_ids))) {
-            $links[$id]['parent'] = $replaced_ids[$link['parent']];
+          if (!empty($link['parent']) && in_array($link['parent'], array_keys($new_ids))) {
+            $links[$id]['parent'] = $new_ids[$link['parent']];
           }
         }
       }

@@ -35,4 +35,13 @@ class MenuLinkContent extends CoreMenuLinkContent {
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getPluginDefinition() {
+    $definition = parent::getPluginDefinition();
+    $definition['class'] = 'Drupal\multiversion\Plugin\Menu\MenuLinkContent';
+    return $definition;
+  }
+
 }
