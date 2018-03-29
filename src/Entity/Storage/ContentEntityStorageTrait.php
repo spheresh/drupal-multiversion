@@ -195,11 +195,6 @@ trait ContentEntityStorageTrait {
         $this->trackConflicts($entity);
       }
 
-      // Delete path alias value if there is one.
-      if ($entity->_deleted->value == TRUE && isset($entity->path) && $entity->path instanceof PathFieldItemList) {
-        $entity->path->delete();
-      }
-
       return $save_result;
     }
     catch (\Exception $e) {
@@ -256,6 +251,11 @@ trait ContentEntityStorageTrait {
     parent::doPostSave($entity, $update);
     // Set the originalId to allow entity renaming.
     $entity->originalId = $entity->id();
+
+    // Delete path alias value if there is one.
+    if ($entity->_deleted->value == TRUE && isset($entity->path) && $entity->path instanceof PathFieldItemList) {
+      $entity->path->delete();
+    }
   }
 
   /**
