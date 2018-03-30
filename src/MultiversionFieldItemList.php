@@ -11,8 +11,8 @@ class MultiversionFieldItemList extends PathautoFieldItemList {
    */
   public function delete() {
     \Drupal::service('pathauto.alias_storage_helper')->deleteEntityPathAll($this->getEntity());
-    if ($this->first()) {
-      $this->first()->get('pathauto')->purge();
+    if ($first = $this->first()) {
+      $first->get('pathauto')->purge();
     }
   }
 
