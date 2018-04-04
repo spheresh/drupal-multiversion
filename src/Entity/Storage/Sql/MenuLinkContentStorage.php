@@ -15,6 +15,15 @@ class MenuLinkContentStorage extends ContentEntityStorage implements ContentEnti
   public function delete(array $entities) {
     parent::delete($entities);
 
+    // Remove the deleted entity as parent for all children.
+    foreach ($entities as $entity) {
+      $children = $this->loadByProperties(['parent' => $entity->getPluginId()]);
+      foreach ($children as $child) {
+        $child->parent->value = '';
+        $child->save();
+      }
+    }
+
     /** @var \Drupal\Core\Menu\MenuLinkManagerInterface $menu_link_manager */
     $menu_link_manager = \Drupal::service('plugin.manager.menu.link');
 
