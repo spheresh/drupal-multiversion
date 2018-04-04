@@ -501,7 +501,9 @@ function multiversion_menu_links_discovered_alter(&$links) {
             unset($links[$old_id]);
           }
           $new_ids[$old_id] = $new_id;
-          $links[$new_id] = $menu_link_content->getPluginDefinition();
+          if (!isset($links[$new_id])) {
+            $links[$new_id] = $menu_link_content->getPluginDefinition();
+          }
           // Set a new plugin class tha will handle new ID format.
           $links[$new_id]['class'] = 'Drupal\multiversion\Plugin\Menu\MenuLinkContent';
         }
