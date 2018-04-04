@@ -14,7 +14,6 @@ use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface;
-use Drupal\multiversion\Entity\Workspace;
 use Drupal\multiversion\Workspace\WorkspaceManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareTrait;
@@ -339,7 +338,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     $entity_types = ($entity_types_to_disable !== NULL) ? $entity_types_to_disable : $this->getEnabledEntityTypes();
     $migration = $this->createMigration();
     $migration->installDependencies();
-    $has_data = $this->prepareContentForMigration($entity_types, $migration, TRUE);
+    $has_data = $this->prepareContentForMigration($entity_types, $migration);
 
     if (empty($entity_types)) {
       return $this;
@@ -471,7 +470,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     return MultiversionMigration::create($this->container, $this->entityTypeManager, $this->entityFieldManager);
   }
 
-  protected function prepareContentForMigration($entity_types, MultiversionMigrationInterface $migration, $disable = FALSE) {
+  protected function prepareContentForMigration($entity_types, MultiversionMigrationInterface $migration) {
     $has_data = [];
     // Walk through and verify that the original storage is in good order.
     // Flakey contrib modules or mocked tests where some schemas aren't properly
@@ -497,20 +496,6 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
           $deleted = $storage->loadMultipleDeleted();
           if (!empty($deleted)) {
             $storage->purge($deleted);
-          }
-          if ($disable) {
-            // Delete all entities from non-default workspace.
-            $workspaces = Workspace::loadMultiple();
-            foreach ($workspaces as $workspace) {
-              if (!$workspace->isDefaultWorkspace()) {
-                $storage->useWorkspace($workspace->id());
-                $deleted = $storage->loadMultipleDeleted();
-                $entities = $storage->loadMultiple();
-                $storage->purge(array_merge($deleted, $entities));
-              }
-            }
-            // Set back the active workspace for the storage.
-            $storage->useWorkspace($this->getActiveWorkspaceId());
           }
         }
 
