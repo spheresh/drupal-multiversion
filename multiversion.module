@@ -383,6 +383,13 @@ function multiversion_views_query_alter(ViewExecutable $view, QueryPluginBase $q
     'poll_list',
   ];
   if (in_array($view->id(), $views_ids)) {
+    /** @var \Drupal\multiversion\MultiversionManagerInterface $manager */
+    $manager = \Drupal::service('multiversion.manager');
+    $entity_type = $view->getBaseEntityType();
+    if (!$manager->isEnabledEntityType($entity_type)) {
+      return;
+    }
+
     $base_table = $view->storage->get('base_table');
     $view->query->where[1]['conditions'][] = [
       'field' => $base_table . '._deleted',
