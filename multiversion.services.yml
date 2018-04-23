@@ -88,6 +88,15 @@ services:
       - [setWorkspaceManager, ['@workspace.manager']]
     tags:
       - { name: workspace_negotiator, priority: 0 }
+  workspace.negotiator.cron:
+    class: Drupal\multiversion\Workspace\CronWorkspaceNegotiator
+    arguments: ['@state']
+    calls:
+      - [setContainer, ['@service_container']]
+      - [setCurrentUser, ['@current_user']]
+      - [setWorkspaceManager, ['@workspace.manager']]
+    tags:
+      - { name: workspace_negotiator, priority: 100 }
   workspace.negotiator.session:
     class: Drupal\multiversion\Workspace\SessionWorkspaceNegotiator
     arguments: ['@user.private_tempstore']
@@ -96,7 +105,7 @@ services:
       - [setCurrentUser, ['@current_user']]
       - [setWorkspaceManager, ['@workspace.manager']]
     tags:
-      - { name: workspace_negotiator, priority: 100 }
+      - { name: workspace_negotiator, priority: 200 }
   conflict.complexlca_resolver:
     class: Drupal\multiversion\Entity\Index\ComplexLcaResolver
     tags:
