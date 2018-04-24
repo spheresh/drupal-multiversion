@@ -2,6 +2,7 @@
 
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface;
 use Drupal\multiversion\Redirect\RedirectStorageSchema;
 use Drupal\multiversion\Entity\Workspace;
 use Drupal\Core\Database\Database;
@@ -447,7 +448,7 @@ function multiversion_update_8104() {
   $entity_types = \Drupal::entityTypeManager()->getDefinitions();
   $enabled_entity_types = [];
   foreach ($entity_types as $entity_type_id => $entity_type) {
-    if (is_subclass_of($entity_type->getStorageClass(), 'Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface')) {
+    if (is_subclass_of($entity_type->getStorageClass(), ContentEntityStorageInterface::class)) {
       $enabled_entity_types[] = $entity_type_id;
     }
   }
@@ -460,7 +461,7 @@ function multiversion_update_8104() {
 function multiversion_update_8105() {
   $entity_types = \Drupal::entityTypeManager()->getDefinitions();
   foreach ($entity_types as $entity_type_id => $entity_type) {
-    if (is_subclass_of($entity_type->getStorageClass(), 'Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface')) {
+    if (is_subclass_of($entity_type->getStorageClass(), ContentEntityStorageInterface::class)) {
       \Drupal::state()->set("multiversion.migration_done.$entity_type_id", TRUE);
     }
   }

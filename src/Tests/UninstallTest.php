@@ -3,6 +3,7 @@
 namespace Drupal\multiversion\Tests;
 
 use Drupal\Core\Entity\Query\QueryInterface;
+use Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -107,7 +108,7 @@ class UninstallTest extends WebTestBase {
     foreach ($this->entityTypes as $entity_type_id => $values) {
       $storage = $entity_type_manager->getStorage($entity_type_id);
       $storage_class = $storage->getEntityType($entity_type_id)->getStorageClass();
-      $this->assertFalse(strpos($storage_class, 'Drupal\multiversion\Entity\Storage'), "$entity_type_id got the correct storage handler assigned.");
+      $this->assertFalse(is_subclass_of($storage_class, ContentEntityStorageInterface::class), "$entity_type_id got the correct storage handler assigned.");
       $this->assertTrue($storage->getQuery() instanceof QueryInterface, "$entity_type_id got the correct query handler assigned.");
       $ids_after[$entity_type_id] = $storage->getQuery()->execute();
       $this->assertEqual($count_before[$entity_type_id], count($ids_after[$entity_type_id]), "All ${entity_type_id}s were migrated.");

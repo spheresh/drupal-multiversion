@@ -12,6 +12,7 @@ use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Path\AliasStorage as CoreAliasStorage;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
+use Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface;
 use Drupal\multiversion\Workspace\WorkspaceManagerInterface;
 
 /**
@@ -334,7 +335,7 @@ class AliasStorage extends CoreAliasStorage {
     }
     $entity_type = $storage->getEntityType();
     $enabled = $this->state->get('multiversion.migration_done.' . $entity_type_id, FALSE);
-    if (is_subclass_of($entity_type->getStorageClass(), 'Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface') && $enabled) {
+    if (is_subclass_of($entity_type->getStorageClass(), ContentEntityStorageInterface::class) && $enabled) {
       return TRUE;
     }
     return FALSE;

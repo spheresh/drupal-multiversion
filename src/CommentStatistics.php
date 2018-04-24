@@ -4,6 +4,7 @@ namespace Drupal\multiversion;
 
 use Drupal\comment\CommentInterface;
 use Drupal\Core\Entity\EntityChangedInterface;
+use Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\comment\CommentStatistics as CoreCommentStatistics;
 
@@ -24,7 +25,7 @@ class CommentStatistics extends CoreCommentStatistics {
     // by Multiversion. This check is needed because the 'comment.statistics'
     // is modified before the comment entity type will be fully migrated to the
     // new storage.
-    if (strpos($storage_class, 'Drupal\multiversion\Entity\Storage') !== FALSE) {
+    if (is_subclass_of($storage_class, ContentEntityStorageInterface::class) !== FALSE) {
       // Allow bulk updates and inserts to temporarily disable the maintenance of
       // the {comment_entity_statistics} table.
       if (!$this->state->get('comment.maintain_entity_statistics')) {
