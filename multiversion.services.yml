@@ -99,7 +99,7 @@ services:
       - { name: workspace_negotiator, priority: 100 }
   workspace.negotiator.session:
     class: Drupal\multiversion\Workspace\SessionWorkspaceNegotiator
-    arguments: ['@user.private_tempstore']
+    arguments: ['@tempstore.private']
     calls:
       - [setContainer, ['@service_container']]
       - [setCurrentUser, ['@current_user']]

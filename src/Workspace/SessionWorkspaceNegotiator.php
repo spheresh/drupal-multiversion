@@ -3,7 +3,7 @@
 namespace Drupal\multiversion\Workspace;
 
 use Drupal\multiversion\Entity\WorkspaceInterface;
-use Drupal\user\PrivateTempStoreFactory;
+use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Symfony\Component\HttpFoundation\Request;
 
 class SessionWorkspaceNegotiator extends WorkspaceNegotiatorBase {
@@ -16,7 +16,7 @@ class SessionWorkspaceNegotiator extends WorkspaceNegotiatorBase {
   /**
    * Constructor.
    *
-   * @param \Drupal\user\PrivateTempStoreFactory $tempstore_factory
+   * @param \Drupal\Core\TempStore\PrivateTempStoreFactory $tempstore_factory
    */
   public function __construct(PrivateTempStoreFactory $tempstore_factory) {
     $this->tempstore = $tempstore_factory->get('workspace.negotiator.session');
