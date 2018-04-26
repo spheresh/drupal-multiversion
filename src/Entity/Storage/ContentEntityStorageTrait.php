@@ -103,7 +103,7 @@ trait ContentEntityStorageTrait {
    * Helper method to get the workspace ID to query.
    */
   protected function getWorkspaceId() {
-    return $this->workspaceId ?: \Drupal::service('workspace.manager')->getActiveWorkspace()->id();
+    return $this->workspaceId ?: \Drupal::service('workspace.manager')->getActiveWorkspaceId();
   }
 
   /**
