@@ -125,7 +125,7 @@ services:
   multiversion.route_provider:
     decorates: 'router.route_provider'
     class: Drupal\multiversion\RouteProvider
-    arguments: ['@database', '@state', '@path.current', '@cache.data', '@path_processor_manager', '@cache_tags.invalidator', 'router', '@workspace.manager']
+    arguments: ['@database', '@state', '@path.current', '@cache.data', '@path_processor_manager', '@cache_tags.invalidator', 'router', '@language_manager', '@workspace.manager']
     public: false
     decoration_priority: 50
     tags:
