@@ -394,6 +394,11 @@ function multiversion_views_query_alter(ViewExecutable $view, QueryPluginBase $q
       'value' => FALSE,
       'operator' => '=',
     ];
+    $view->query->where[1]['conditions'][] = [
+      'field' => $base_table . '.workspace',
+      'value' => multiversion_get_active_workspace_id(),
+      'operator' => '=',
+    ];
   }
 }
 
