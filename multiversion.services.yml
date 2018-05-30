@@ -122,11 +122,13 @@ services:
     decoration_priority: 50
     tags:
       - { name: backend_overridable }
+  # The decorated service must remain public in order to not break views
+  # (de-)serialization.
+  # See https://www.drupal.org/project/multiversion/issues/2973609
   multiversion.route_provider:
     decorates: 'router.route_provider'
     class: Drupal\multiversion\RouteProvider
     arguments: ['@database', '@state', '@path.current', '@cache.data', '@path_processor_manager', '@cache_tags.invalidator', 'router', '@language_manager', '@workspace.manager']
-    public: false
     decoration_priority: 50
     tags:
       - { name: event_subscriber }
