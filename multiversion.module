@@ -55,56 +55,62 @@ function multiversion_entity_type_alter(array &$entity_types) {
       }
 
       $namespace = 'Drupal\multiversion\Entity\Storage\Sql';
+      $original_storage_class = $entity_type->getHandlerClass('storage');
       switch ($entity_type->id()) {
         case 'node':
+          $entity_type->setHandlerClass('original_storage', $original_storage_class);
           $entity_type->setHandlerClass('storage', "$namespace\\NodeStorage");
           break;
 
         case 'taxonomy_term':
+          $entity_type->setHandlerClass('original_storage', $original_storage_class);
           $entity_type->setHandlerClass('storage', "$namespace\\TermStorage");
           break;
 
         case 'comment':
+          $entity_type->setHandlerClass('original_storage', $original_storage_class);
           $entity_type->setHandlerClass('storage', "$namespace\\CommentStorage");
           break;
 
         case 'menu_link_content':
+          $entity_type->setHandlerClass('original_storage', $original_storage_class);
           $entity_type->setClass('Drupal\multiversion\Entity\MenuLinkContent');
           $entity_type->setHandlerClass('storage', "$namespace\\MenuLinkContentStorage");
           break;
 
         case 'file':
+          $entity_type->setHandlerClass('original_storage', $original_storage_class);
           $entity_type->setHandlerClass('storage', "$namespace\\FileStorage");
           break;
 
         case 'media':
+          $entity_type->setHandlerClass('original_storage', $original_storage_class);
           $entity_type->setHandlerClass('storage', "$namespace\\MediaStorage");
           break;
 
         case 'poll':
+          $entity_type->setHandlerClass('original_storage', $original_storage_class);
           $entity_type->setHandlerClass('storage', "$namespace\\PollStorage");
           break;
 
         case 'crop':
+          $entity_type->setHandlerClass('original_storage', $original_storage_class);
           $entity_type->setHandlerClass('storage', "$namespace\\CropStorage");
           break;
 
         case 'redirect':
           $entity_type->setHandlerClass('storage_schema', 'Drupal\multiversion\Redirect\RedirectStorageSchema');
-          $storage_class = $entity_type->getHandlerClass('storage');
-          if (in_array($storage_class, [NULL, 'Drupal\Core\Entity\Sql\SqlContentEntityStorage'])) {
-            $entity_type->setHandlerClass('original_storage', $entity_type->getHandlerClass('storage'));
+          if (in_array($original_storage_class, [NULL, 'Drupal\Core\Entity\Sql\SqlContentEntityStorage'])) {
+            $entity_type->setHandlerClass('original_storage', $original_storage_class);
             $entity_type->setHandlerClass('storage', "$namespace\\ContentEntityStorage");
           }
           break;
 
         default:
-          $storage_class = $entity_type->getHandlerClass('storage');
-
           // We can only override the storage handler for entity types we know
           // what to expect of.
-          if (in_array($storage_class, [NULL, 'Drupal\Core\Entity\Sql\SqlContentEntityStorage'])) {
-            $entity_type->setHandlerClass('original_storage', $entity_type->getHandlerClass('storage'));
+          if (in_array($original_storage_class, [NULL, 'Drupal\Core\Entity\Sql\SqlContentEntityStorage'])) {
+            $entity_type->setHandlerClass('original_storage', $original_storage_class);
             $entity_type->setHandlerClass('storage', "$namespace\\ContentEntityStorage");
           }
           break;
