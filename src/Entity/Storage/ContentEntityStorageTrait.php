@@ -190,8 +190,9 @@ trait ContentEntityStorageTrait {
       $save_result = parent::save($entity);
 
       // Update indexes.
+      $this->indexEntity($entity);
       if (!$local) {
-        $this->indexEntity($entity);
+        $this->indexEntitySequence($entity);
         $this->indexEntityRevision($entity);
         $this->trackConflicts($entity);
       }
@@ -268,13 +269,22 @@ trait ContentEntityStorageTrait {
     $workspace = isset($entity->workspace) ? $entity->workspace->entity : null;
     $index_factory = \Drupal::service('multiversion.entity_index.factory');
 
-    $index_factory->get('multiversion.entity_index.sequence', $workspace)
-      ->add($entity);
-
     $index_factory->get('multiversion.entity_index.id', $workspace)
       ->add($entity);
 
     $index_factory->get('multiversion.entity_index.uuid', $workspace)
+      ->add($entity);
+  }
+
+  /**
+   * Indexes entity sequence.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   */
+  protected function indexEntitySequence(EntityInterface $entity) {
+    $workspace = isset($entity->workspace) ? $entity->workspace->entity : null;
+    \Drupal::service('multiversion.entity_index.factory')
+      ->get('multiversion.entity_index.sequence', $workspace)
       ->add($entity);
   }
 
