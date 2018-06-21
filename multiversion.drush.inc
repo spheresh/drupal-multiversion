@@ -22,8 +22,8 @@ function multiversion_drush_command() {
       'entity_types' => dt('The list of entity types, comma or space separated.'),
     ],
     'examples' => [
-      'drush enable-entity-type my_et' => 'Makes my_et entity type multiversionable.',
-      'drush enable-entity-type my_et my_et2' => 'Makes my_et and my_et2 entity types multiversionable.',
+      'drush multiversion-enable-entity-types my_et' => 'Makes my_et entity type multiversionable.',
+      'drush multiversion-enable-entity-types my_et my_et2' => 'Makes my_et and my_et2 entity types multiversionable.',
       'drush met my_et' => 'Makes my_et entity type multiversionable.',
       'drush met my_et my_et2' => 'Makes my_et and my_et2 entity types multiversionable.',
     ],
@@ -37,8 +37,8 @@ function multiversion_drush_command() {
       'entity_types' => dt('The list of entity types, comma or space separated.'),
     ],
     'examples' => [
-      'drush disable-entity-type my_et' => 'Makes my_et entity type non-multiversionable.',
-      'drush disable-entity-type my_et1 my_et2' => 'Makes my_et and my_et2 entity types non-multiversionable.',
+      'drush multiversion-disable-entity-types my_et' => 'Makes my_et entity type non-multiversionable.',
+      'drush multiversion-disable-entity-types my_et1 my_et2' => 'Makes my_et and my_et2 entity types non-multiversionable.',
       'drush mdt my_et' => 'Makes my_et entity type non-multiversionable.',
       'drush mdt my_et1 my_et2' => 'Makes my_et and my_et2 entity types non-multiversionable.',
     ],
