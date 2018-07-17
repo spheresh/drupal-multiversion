@@ -3,12 +3,11 @@ sudo: false
 language: php
 
 php:
-  - 5.6
   - 7.1
+  - 7.2
 
 env:
-  - MAKE_FILE=drupal-8.4.x.make.yml
-  - MAKE_FILE=drupal-8.5.x.make.yml
+  - MAKE_FILE=drupal-8.6.x.make.yml
 
 services:
   - mysql
