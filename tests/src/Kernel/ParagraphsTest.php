@@ -64,7 +64,6 @@ class ParagraphsTest extends KernelTestBase {
     $workspace = Workspace::create([
       'machine_name' => 'live',
       'label' => 'Live',
-      'type' => 'basic',
     ]);
     $workspace->save();
     $this->nodeStorage = $entityTypeManager->getStorage('node');

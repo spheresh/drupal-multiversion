@@ -330,7 +330,6 @@ class EntityStorageTest extends MultiversionWebTestBase {
     $workspace = Workspace::create([
       'machine_name' => $this->randomMachineName(),
       'label' => $this->randomMachineName(),
-      'type' => 'basic'
     ]);
     $workspace->save();
     $this->workspaceManager->setActiveWorkspace($workspace);
@@ -359,7 +358,7 @@ class EntityStorageTest extends MultiversionWebTestBase {
 
     // Switch back to the original workspace and check that the entities does
     // NOT exists here.
-    $this->multiversionManager->setActiveWorkspaceId(1);
+    $this->workspaceManager->setActiveWorkspace(Workspace::load(1));
 
     foreach ($this->entityTypes as $entity_type_id => $info) {
       $storage = $this->entityTypeManager->getStorage($entity_type_id);
@@ -372,13 +371,11 @@ class EntityStorageTest extends MultiversionWebTestBase {
     $source = Workspace::create([
       'machine_name' => $this->randomMachineName(),
       'label' => $this->randomMachineName(),
-      'type' => 'basic'
     ]);
     $source->save();
     $target = Workspace::create([
       'machine_name' => $this->randomMachineName(),
       'label' => $this->randomMachineName(),
-      'type' => 'basic'
     ]);
     $target->save();
 

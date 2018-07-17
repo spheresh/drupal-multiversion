@@ -8,20 +8,6 @@ use Drupal\Core\Entity\EntityTypeInterface;
 interface MultiversionManagerInterface {
 
   /**
-   * @return string
-   * @deprecated Should no longer be used.
-   * @see \Drupal\workspace\WorkspaceManager::getActiveWorkspace()
-   */
-  public function getActiveWorkspaceId();
-
-  /**
-   * @param string $id
-   * @deprecated Should no longer be used.
-   * @see \Drupal\workspace\WorkspaceManager::setActiveWorkspace()
-   */
-  public function setActiveWorkspaceId($id);
-
-  /**
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
    * @return boolean
    */

@@ -53,7 +53,7 @@ class MenuLinkTest extends WebTestBase {
     $this->drupalPlaceBlock('system_menu_block:main');
 
     $this->initialWorkspace = $this->workspaceManager->getActiveWorkspace();
-    $this->newWorkspace = Workspace::create(['machine_name' => 'foo', 'label' => 'Foo', 'type' => 'basic']);
+    $this->newWorkspace = Workspace::create(['machine_name' => 'foo', 'label' => 'Foo']);
     $this->newWorkspace->save();
   }
 

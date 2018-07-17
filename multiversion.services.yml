@@ -52,33 +52,24 @@ services:
   multiversion.conflict_tracker:
     class: Drupal\multiversion\Conflict\ConflictTracker
     arguments: ['@keyvalue', '@workspace.manager']
+  cache_context.workspace:
+    class: Drupal\multiversion\WorkspaceCacheContext
+    arguments: ['@workspace.manager']
+    tags:
+      - { name: cache.context }
   multiversion.stream_wrapper.migrate:
     class: Drupal\multiversion\StreamWrapper\MigrateStream
     tags:
       - { name: stream_wrapper, scheme: migrate }
+  multiversion.plugin.manager.block:
+    decorates: plugin.manager.block
+    class: Drupal\multiversion\Block\BlockManager
+    decoration_priority: 50
+    parent: default_plugin_manager
+    arguments: ['@database', '@workspace.manager']
   logger.channel.workspace:
     parent: logger.channel_base
     arguments: ['cron']
-
-  # @todo: {@link https://www.drupal.org/node/2597414 Simplify the container
-  # definition for negotiators.}
-  workspace.negotiator.default:
-    class: Drupal\multiversion\Workspace\DefaultWorkspaceNegotiator
-    calls:
-      - [setContainer, ['@service_container']]
-      - [setCurrentUser, ['@current_user']]
-      - [setWorkspaceManager, ['@workspace.manager']]
-    tags:
-      - { name: workspace_negotiator, priority: 0 }
-  workspace.negotiator.session:
-    class: Drupal\multiversion\Workspace\SessionWorkspaceNegotiator
-    arguments: ['@user.private_tempstore']
-    calls:
-      - [setContainer, ['@service_container']]
-      - [setCurrentUser, ['@current_user']]
-      - [setWorkspaceManager, ['@workspace.manager']]
-    tags:
-      - { name: workspace_negotiator, priority: 100 }
   conflict.complexlca_resolver:
     class: Drupal\multiversion\Entity\Index\ComplexLcaResolver
     tags:
@@ -87,3 +78,22 @@ services:
     class: Drupal\multiversion\Normalizer\EntityReferenceItemNormalizer
     tags:
       - { name: normalizer, priority: 50 }
+  multiversion.alias_storage:
+    decorates: 'path.alias_storage'
+    class: Drupal\multiversion\AliasStorage
+    arguments: ['@database', '@module_handler', '@workspace.manager', '@entity_type.manager', '@state']
+    public: false
+    decoration_priority: 50
+    tags:
+      - { name: backend_overridable }
+  # The decorated service must remain public in order to not break views
+  # (de-)serialization.
+  # See https://www.drupal.org/project/multiversion/issues/2973609
+  multiversion.route_provider:
+    decorates: 'router.route_provider'
+    class: Drupal\multiversion\RouteProvider
+    arguments: ['@database', '@state', '@path.current', '@cache.data', '@path_processor_manager', '@cache_tags.invalidator', 'router', '@language_manager', '@workspace.manager']
+    decoration_priority: 50
+    tags:
+      - { name: event_subscriber }
+      - { name: backend_overridable }

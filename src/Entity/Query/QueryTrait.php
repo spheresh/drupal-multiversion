@@ -2,6 +2,8 @@
 
 namespace Drupal\multiversion\Entity\Query;
 
+use Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface;
+
 /**
  * @property $entityTypeId
  * @property $entityTypeManager
@@ -10,7 +12,7 @@ namespace Drupal\multiversion\Entity\Query;
 trait QueryTrait {
 
   /**
-   * @var null|string
+   * @var null|int
    */
   protected $workspaceId = NULL;
 
@@ -20,7 +22,9 @@ trait QueryTrait {
   protected $isDeleted = FALSE;
 
   /**
+   * @param int $id
    *
+   * @return \Drupal\multiversion\Entity\Query\QueryTrait
    */
   public function useWorkspace($id) {
     $this->workspaceId = $id;
@@ -49,13 +53,18 @@ trait QueryTrait {
     $enabled = \Drupal::state()->get('multiversion.migration_done.' . $this->getEntityTypeId(), FALSE);
     // Add necessary conditions just when the storage class is defined by the
     // Multiversion module. This is needed when uninstalling Multiversion.
-    if (is_subclass_of($entity_type->getStorageClass(), 'Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface') && $enabled) {
+    if (is_subclass_of($entity_type->getStorageClass(), ContentEntityStorageInterface::class) && $enabled) {
       $revision_key = $entity_type->getKey('revision');
       $revision_query = FALSE;
       foreach ($this->condition->conditions() as $condition) {
         if ($condition['field'] == $revision_key) {
           $revision_query = TRUE;
         }
+      }
+
+      // Set the workspace condition.
+      if ($workspace_id = $this->getWorkspaceId()) {
+        $this->condition('workspace', $workspace_id);
       }
 
       // Loading a revision is explicit. So when we try to load one we should do
@@ -65,6 +74,19 @@ trait QueryTrait {
       }
     }
     return $this;
+  }
+
+  /**
+   * Helper method to get the workspace ID to query.
+   */
+  protected function getWorkspaceId() {
+    if ($this->workspaceId) {
+      return $this->workspaceId;
+    }
+    if ($workspace = \Drupal::service('workspace.manager')->getActiveWorkspace()) {
+      return $workspace->id();
+    }
+    return NULL;
   }
 
 }

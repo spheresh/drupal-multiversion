@@ -8,7 +8,7 @@ use Drupal\multiversion\Entity\Index\RevisionIndexInterface;
 use Drupal\multiversion\Entity\Index\RevisionTreeIndexInterface;
 use Drupal\multiversion\Entity\Index\SequenceIndexInterface;
 use Drupal\multiversion\Entity\Index\UuidIndexInterface;
-use Drupal\workspace\Entity\Workspace;
+use Drupal\multiversion\Entity\Workspace;
 
 
 /**
@@ -24,7 +24,7 @@ class MultiversionIndexFactoryTest extends KernelTestBase {
   /** @var  \Drupal\multiversion\Entity\Index\MultiversionIndexFactory */
   protected $multiversionIndexFactory;
 
-  /** @var  \Drupal\workspace\Entity\Workspace */
+  /** @var  \Drupal\multiversion\Entity\WorkspaceInterface */
   protected $workspace;
 
   /**
@@ -38,7 +38,6 @@ class MultiversionIndexFactoryTest extends KernelTestBase {
     $this->multiversionIndexFactory = \Drupal::service('multiversion.entity_index.factory');
 
     $this->workspace = Workspace::create([
-      'type' => 'test',
       'machine_name' => 'le_workspace',
       'label' => 'Le Workspace',
     ]);

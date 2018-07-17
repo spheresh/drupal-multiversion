@@ -12,7 +12,6 @@ use Drupal\Core\State\StateInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Database\Connection;
-use Drupal\workspace\Entity\Workspace;
 use Drupal\workspace\WorkspaceManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareTrait;
@@ -122,21 +121,6 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       $cache = $status;
     }
     return $cache;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getActiveWorkspaceId() {
-    return $this->workspaceManager->getActiveWorkspace()->id();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setActiveWorkspaceId($id) {
-    $workspace = Workspace::load($id);
-    return $this->workspaceManager->setActiveWorkspace($workspace);
   }
 
   /**
@@ -489,8 +473,8 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
         unset($entity_types[$entity_type_id]);
       }
 
-      // Migrate content to temporary storage.
       if ($has_data[$entity_type_id]) {
+        // Migrate content to temporary storage.
         if ($storage->getEntityTypeId() === 'file') {
           $migration->copyFilesToMigrateDirectory($storage);
         }

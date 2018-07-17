@@ -10,7 +10,7 @@ namespace Drupal\multiversion\Tests;
 class ConflictTrackerTest extends MultiversionWebTestBase {
 
   /**
-   * @var \Drupal\multiversion\Workspace\ConflictTracker;
+   * @var \Drupal\multiversion\Conflict\ConflictTracker;
    */
   protected $conflictTracker;
 
@@ -52,6 +52,7 @@ class ConflictTrackerTest extends MultiversionWebTestBase {
    * @return array
    *   keys - uuid of entity
    *   values - The conflicts array as returned from ConflictTracker::get().
+   * @throws \Drupal\Core\Entity\EntityStorageException
    */
   protected function checkEntityConflicts($revision_start = 0) {
     /** @var \Drupal\entity_test\Entity\EntityTest $entity */
@@ -101,6 +102,8 @@ class ConflictTrackerTest extends MultiversionWebTestBase {
    *
    * @param $uuid
    *   The uuid of entity to resolve a conflict for.
+   *
+   * @throws \Drupal\Core\Entity\EntityStorageException
    */
   protected function resolveConflicts($uuid) {
     // Get the conflicts for this entity.

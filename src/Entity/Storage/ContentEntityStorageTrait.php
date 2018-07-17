@@ -6,6 +6,7 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\file\FileInterface;
+use Drupal\path\Plugin\Field\FieldType\PathFieldItemList;
 use Drupal\user\UserStorageInterface;
 
 trait ContentEntityStorageTrait {
@@ -16,7 +17,7 @@ trait ContentEntityStorageTrait {
   protected $isDeleted = FALSE;
 
   /**
-   * @var integer
+   * @var int
    */
   protected $workspaceId = NULL;
 
@@ -35,15 +36,12 @@ trait ContentEntityStorageTrait {
   /**
    * Get original entity type storage handler (not the multiversion one).
    *
-   * @param string $type
-   *   Entity type.
-   *
    * @return \Drupal\Core\Entity\EntityStorageInterface
    *   Original entity type storage handler.
    */
-  protected function getOriginalStorage($type) {
+  public function getOriginalStorage() {
     if ($this->originalStorage == NULL) {
-      $this->originalStorage = $this->entityManager->getHandler($type, 'original_storage');
+      $this->originalStorage = $this->entityManager->getHandler($this->entityTypeId, 'original_storage');
     }
     return $this->originalStorage;
   }
@@ -56,7 +54,7 @@ trait ContentEntityStorageTrait {
     $enabled = \Drupal::state()->get('multiversion.migration_done.' . $this->getEntityTypeId(), FALSE);
 
     // Prevent to modify the query before entity type updates.
-    if (!is_subclass_of($this->entityType->getStorageClass(), 'Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface') || !$enabled) {
+    if (!is_subclass_of($this->entityType->getStorageClass(), ContentEntityStorageInterface::class) || !$enabled) {
       return $query;
     }
 
@@ -127,6 +125,19 @@ trait ContentEntityStorageTrait {
   /**
    * {@inheritdoc}
    */
+  public function loadByProperties(array $values = []) {
+    // Build a query to fetch the entity IDs.
+    $entity_query = $this->getQuery();
+    $entity_query->useWorkspace($this->getWorkspaceId());
+    $entity_query->accessCheck(FALSE);
+    $this->buildPropertyQuery($entity_query, $values);
+    $result = $entity_query->execute();
+    return $result ? $this->loadMultiple($result) : [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function loadDeleted($id) {
     $entities = $this->loadMultipleDeleted([$id]);
     return isset($entities[$id]) ? $entities[$id] : NULL;
@@ -144,19 +155,28 @@ trait ContentEntityStorageTrait {
    * {@inheritdoc}
    */
   public function saveWithoutForcingNewRevision(EntityInterface $entity) {
-    $this->getOriginalStorage($entity->getEntityTypeId())->save($entity);
+    $this->getOriginalStorage()->save($entity);
   }
 
   /**
    * {@inheritdoc}
    */
   public function save(EntityInterface $entity) {
+    // When importing with default content we want to it to be treated like a
+    // replicate, and not as a new edit.
+    if (isset($entity->default_content)) {
+      list(, $hash) = explode('-', $entity->_rev->value);
+      $entity->_rev->revisions = [$hash];
+      $entity->_rev->new_edit = FALSE;
+    }
+
     // Every update is a new revision with this storage model.
     $entity->setNewRevision();
 
     // Index the revision.
     $branch = $this->buildRevisionBranch($entity);
-    if ($this->entityType->get('local') !== TRUE) {
+    $local = (boolean) $this->entityType->get('local');
+    if (!$local) {
       $this->indexEntityRevision($entity);
       $this->indexEntityRevisionTree($entity, $branch);
     }
@@ -171,7 +191,8 @@ trait ContentEntityStorageTrait {
 
       // Update indexes.
       $this->indexEntity($entity);
-      if ($this->entityType->get('local') !== TRUE) {
+      if (!$local) {
+        $this->indexEntitySequence($entity);
         $this->indexEntityRevision($entity);
         $this->trackConflicts($entity);
       }
@@ -232,6 +253,11 @@ trait ContentEntityStorageTrait {
     parent::doPostSave($entity, $update);
     // Set the originalId to allow entity renaming.
     $entity->originalId = $entity->id();
+
+    // Delete path alias value if there is one.
+    if ($entity->_deleted->value == TRUE && isset($entity->path) && $entity->path instanceof PathFieldItemList) {
+      $entity->path->delete();
+    }
   }
 
   /**
@@ -243,13 +269,22 @@ trait ContentEntityStorageTrait {
     $workspace = isset($entity->workspace) ? $entity->workspace->entity : null;
     $index_factory = \Drupal::service('multiversion.entity_index.factory');
 
-    $index_factory->get('multiversion.entity_index.sequence', $workspace)
-      ->add($entity);
-
     $index_factory->get('multiversion.entity_index.id', $workspace)
       ->add($entity);
 
     $index_factory->get('multiversion.entity_index.uuid', $workspace)
+      ->add($entity);
+  }
+
+  /**
+   * Indexes entity sequence.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   */
+  protected function indexEntitySequence(EntityInterface $entity) {
+    $workspace = isset($entity->workspace) ? $entity->workspace->entity : null;
+    \Drupal::service('multiversion.entity_index.factory')
+      ->get('multiversion.entity_index.sequence', $workspace)
       ->add($entity);
   }
 
@@ -482,7 +517,7 @@ trait ContentEntityStorageTrait {
    */
   protected function trackConflicts(EntityInterface $entity) {
     $workspace = isset($entity->workspace) ? $entity->workspace->entity : null;
-    /** @var \Drupal\multiversion\Workspace\ConflictTrackerInterface $conflictTracker */
+    /** @var \Drupal\multiversion\Conflict\ConflictTrackerInterface $conflictTracker */
     $conflictTracker = \Drupal::service('multiversion.conflict_tracker')
       ->useWorkspace($workspace);
 

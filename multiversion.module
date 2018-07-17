@@ -390,7 +390,7 @@ function multiversion_element_pre_render($element) {
  * Callback for getting the active workspace ID.
  */
 function multiversion_get_active_workspace_id() {
-  return \Drupal::service('multiversion.manager')->getActiveWorkspaceId();
+  return \Drupal::service('multiversion.manager')->getActiveWorkspace()->id();
 }
 
 /**

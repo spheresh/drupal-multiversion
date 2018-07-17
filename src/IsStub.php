@@ -14,7 +14,7 @@ class IsStub extends TypedData {
    */
   public function getValue($langcode = NULL) {
     // Check if we have explicitly set a value.
-    if ($this->value !== NULL) {
+    if (isset($this->value) && $this->value !== NULL) {
       return $this->value;
     }
     // Check if the entity was saved as a stub earlier.

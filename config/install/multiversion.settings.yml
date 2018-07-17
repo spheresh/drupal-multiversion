@@ -16,9 +16,11 @@ supported_entity_types:
   - content_moderation_state
   - replication_log
   - paragraph
+  - paragraphs_library_item
   - crop
   - poll
   - poll_choice
+  - redirect
 #Entity types enabled by Multiversion. When Multiversion is installed it will enable all supported entity types if they
 #exist (if the module that provides the entity type is enabled).
 enabled_entity_types: {  }
