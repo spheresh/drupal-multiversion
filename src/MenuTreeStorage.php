@@ -32,10 +32,7 @@ class MenuTreeStorage extends CoreMenuTreeStorage {
     $this->entityTypeManager = \Drupal::service('entity_type.manager');
     $this->workspaceManager = \Drupal::service('workspace.manager');
 
-    $this->menuCacheBackend = new CacheBackendDecorator(
-      $menu_cache_backend,
-      $this->workspaceManager
-    );
+    $this->menuCacheBackend = $menu_cache_backend;
   }
 
   /**

@@ -8,10 +8,15 @@ use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\Sql\SqlContentEntityStorageSchemaConverter;
+use Drupal\Core\Entity\Sql\SqlEntityStorageInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Utility\Error;
+use Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface;
+use Drupal\multiversion\Entity\Storage\Sql\ContentEntityStorageSchemaConverter;
 use Drupal\workspace\WorkspaceManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareTrait;
@@ -101,7 +106,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
    * @param boolean|array $status
    * @return boolean|array
    */
-  public static function enableMigrationIsActive($status = NULL) {
+  public static function enableIsActive($status = NULL) {
     static $cache = FALSE;
     if ($status !== NULL) {
       $cache = $status;
@@ -195,7 +200,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
   public function allowToAlter(EntityTypeInterface $entity_type) {
     $supported_entity_types = \Drupal::config('multiversion.settings')->get('supported_entity_types') ?: [];
     $id = $entity_type->id();
-    $enable_migration = self::enableMigrationIsActive();
+    $enable_migration = self::enableIsActive();
     $disable_migration = self::disableMigrationIsActive();
     // Don't allow to alter entity type that is not supported.
     if (!in_array($id, $supported_entity_types)) {
@@ -227,89 +232,46 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
 
   /**
    * {@inheritdoc}
-   *
-   * @todo Ensure nothing breaks if the migration is run twice.
    */
   public function enableEntityTypes($entity_types_to_enable = NULL) {
     $entity_types = ($entity_types_to_enable !== NULL) ? $entity_types_to_enable : $this->getSupportedEntityTypes();
-    $enabled_entity_types = \Drupal::config('multiversion.settings')->get('enabled_entity_types') ?: [];
     if (empty($entity_types)) {
       return $this;
     }
-    $migration = $this->createMigration();
-    $migration->installDependencies();
-    $has_data = $this->prepareContentForMigration($entity_types, $migration);
 
-    // Nasty workaround until {@link https://www.drupal.org/node/2549143 there
-    // is a better way to invalidate caches in services}.
-    // For some reason we have to clear cache on the "global" service as opposed
-    // to the injected one. Services in the dark corners of Entity API won't see
-    // the same result otherwise. Very strange.
-    \Drupal::entityTypeManager()->clearCachedDefinitions();
-    \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+    self::enableIsActive(array_keys($entity_types));
+    $this->entityTypeManager->clearCachedDefinitions();
+    $multiversion_settings = \Drupal::configFactory()
+      ->getEditable('multiversion.settings');
+    $enabled_entity_types = $multiversion_settings->get('enabled_entity_types') ?: [];
     foreach ($entity_types as $entity_type_id => $entity_type) {
-      $cid = "entity_base_field_definitions:$entity_type_id:" . $this->languageManager->getCurrentLanguage()->getId();
-      $this->cache->invalidate($cid);
-    }
-
-    self::enableMigrationIsActive(array_keys($entity_types));
-    $migration->applyNewStorage();
-
-    // Definitions will now be updated. So fetch the new ones.
-    if ($entity_types_to_enable !== NULL) {
-      $updated_entity_types = [];
-      foreach ($entity_types as $entity_type_id => $entity_type) {
-        $updated_entity_types[$entity_type_id] = $this->entityTypeManager->getStorage($entity_type_id)->getEntityType();
+      if (in_array($entity_type_id, $enabled_entity_types)) {
+        continue;
       }
-    }
-    else {
-      $updated_entity_types = $this->getSupportedEntityTypes();
-    }
+      $schema_converter = new ContentEntityStorageSchemaConverter(
+        $entity_type_id,
+        $this->entityTypeManager,
+        \Drupal::entityDefinitionUpdateManager(),
+        \Drupal::service('entity.last_installed_schema.repository'),
+        \Drupal::keyValue('entity.storage_schema.sql'),
+        $this->connection,
+        $this->entityFieldManager
+      );
 
-    // Temporarily disable the maintenance of the {comment_entity_statistics} table.
-    $this->state->set('comment.maintain_entity_statistics', FALSE);
-    \Drupal::state()->resetCache();
-
-    foreach ($updated_entity_types as $entity_type_id => $entity_type) {
-      // Migrate from the temporary storage to the new shiny home.
-      if ($has_data[$entity_type_id]) {
-        $migration->migrateContentFromTemp($entity_type);
-        $migration->cleanupMigration($entity_type_id . '__to_tmp');
-        $migration->cleanupMigration($entity_type_id . '__from_tmp');
-      }
-
-      // Mark the migration for this particular entity type as done even if no
-      // actual content was migrated.
-      $this->state->set("multiversion.migration_done.$entity_type_id", TRUE);
-    }
-
-    foreach ($entity_types as $entity_type_id => $entity_type) {
-      $enabled = $this->state->get("multiversion.migration_done.$entity_type_id", FALSE);
-      if (!in_array($entity_type_id, $enabled_entity_types) && $enabled) {
+      $sandbox = [];
+      try {
+        $schema_converter->convertToMultiversionable($sandbox);
         $enabled_entity_types[] = $entity_type_id;
+        $multiversion_settings
+          ->set('enabled_entity_types', $enabled_entity_types)
+          ->save();
+      }
+      catch (\Throwable $e) {
+        $arguments = Error::decodeException($e) + ['%entity_type' => $entity_type_id];
+        throw new \Exception(t('%type: @message in %function (line %line of %file). The problem occurred while processing \'%entity_type\' entity type.', $arguments));
       }
     }
-    \Drupal::configFactory()
-      ->getEditable('multiversion.settings')
-      ->set('enabled_entity_types', $enabled_entity_types)
-      ->save();
-
-    // Enable the the maintenance of entity statistics for comments.
-    $this->state->set('comment.maintain_entity_statistics', TRUE);
-
-    // Clean up after us.
-    $migration->uninstallDependencies();
-    self::enableMigrationIsActive(FALSE);
-
-    // Mark the whole migration as done. Any entity types installed after this
-    // will not need a migration since they will be created directly on top of
-    // the Multiversion storage.
-    $this->state->set('multiversion.migration_done', TRUE);
-
-    // Another nasty workaround because the cache is getting skewed somewhere.
-    // And resetting the cache on the injected state service does not work.
-    // Very strange.
-    \Drupal::state()->resetCache();
+    self::enableIsActive(NULL);
 
     return $this;
   }
@@ -318,87 +280,87 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
    * {@inheritdoc}
    */
   public function disableEntityTypes($entity_types_to_disable = NULL) {
-    $entity_types = ($entity_types_to_disable !== NULL) ? $entity_types_to_disable : $this->getEnabledEntityTypes();
-    $migration = $this->createMigration();
-    $migration->installDependencies();
-    $has_data = $this->prepareContentForMigration($entity_types, $migration);
-
-    if (empty($entity_types)) {
-      return $this;
-    }
-
-    if ($entity_types_to_disable === NULL) {
-      // Uninstall field storage definitions provided by multiversion.
-      $this->entityTypeManager->clearCachedDefinitions();
-      $update_manager = \Drupal::entityDefinitionUpdateManager();
-      foreach ($this->entityTypeManager->getDefinitions() as $entity_type) {
-        if ($entity_type->isSubclassOf(FieldableEntityInterface::CLASS)) {
-          $entity_type_id = $entity_type->id();
-          $revision_key = $entity_type->getKey('revision');
-          /** @var \Drupal\Core\Entity\FieldableEntityStorageInterface $storage */
-          $storage = $this->entityTypeManager->getStorage($entity_type_id);
-          foreach ($this->entityFieldManager->getFieldStorageDefinitions($entity_type_id) as $storage_definition) {
-            // @todo We need to trigger field purging here.
-            //   See https://www.drupal.org/node/2282119.
-            if ($storage_definition->getProvider() == 'multiversion' && !$storage->countFieldData($storage_definition, TRUE) && $storage_definition->getName() != $revision_key) {
-              $update_manager->uninstallFieldStorageDefinition($storage_definition);
-            }
-          }
-        }
-      }
-    }
-
-    $enabled_entity_types = \Drupal::config('multiversion.settings')->get('enabled_entity_types') ?: [];
-    foreach ($entity_types as $entity_type_id => $entity_type) {
-      if (($key = array_search($entity_type_id, $enabled_entity_types)) !== FALSE) {
-        unset($enabled_entity_types[$key]);
-      }
-    }
-    if ($entity_types_to_disable === NULL) {
-      $enabled_entity_types = [];
-    }
-    \Drupal::configFactory()
-      ->getEditable('multiversion.settings')
-      ->set('enabled_entity_types', $enabled_entity_types)
-      ->save();
-
-    self::disableMigrationIsActive(array_keys($entity_types));
-    $migration->applyNewStorage();
-
-    // Temporarily disable the maintenance of the {comment_entity_statistics} table.
-    $this->state->set('comment.maintain_entity_statistics', FALSE);
-    \Drupal::state()->resetCache();
-
-    // Definitions will now be updated. So fetch the new ones.
-    $updated_entity_types = [];
-    foreach ($entity_types as $entity_type_id => $entity_type) {
-      $updated_entity_types[$entity_type_id] = $this->entityTypeManager->getStorage($entity_type_id)->getEntityType();
-    }
-    foreach ($updated_entity_types as $entity_type_id => $entity_type) {
-      // Drop unique key from uuid on each entity type.
-      $base_table = $entity_type->getBaseTable();
-      $uuid_key = $entity_type->getKey('uuid');
-      $this->connection->schema()->dropUniqueKey($base_table, $entity_type_id . '_field__' . $uuid_key . '__value');
-
-      // Migrate from the temporary storage to the drupal default storage.
-      if ($has_data[$entity_type_id]) {
-        $migration->migrateContentFromTemp($entity_type);
-        $migration->cleanupMigration($entity_type_id . '__to_tmp');
-        $migration->cleanupMigration($entity_type_id . '__from_tmp');
-      }
-
-      $this->state->delete("multiversion.migration_done.$entity_type_id");
-    }
-
-    // Enable the the maintenance of entity statistics for comments.
-    $this->state->set('comment.maintain_entity_statistics', TRUE);
-
-    // Clean up after us.
-    $migration->uninstallDependencies();
-    self::disableMigrationIsActive(FALSE);
-
-    $this->state->delete('multiversion.migration_done');
-
+//    $entity_types = ($entity_types_to_disable !== NULL) ? $entity_types_to_disable : $this->getEnabledEntityTypes();
+//    $migration = $this->createMigration();
+//    $migration->installDependencies();
+//    $has_data = $this->prepareContentForMigration($entity_types, $migration);
+//
+//    if (empty($entity_types)) {
+//      return $this;
+//    }
+//
+//    if ($entity_types_to_disable === NULL) {
+//      // Uninstall field storage definitions provided by multiversion.
+//      $this->entityTypeManager->clearCachedDefinitions();
+//      $update_manager = \Drupal::entityDefinitionUpdateManager();
+//      foreach ($this->entityTypeManager->getDefinitions() as $entity_type) {
+//        if ($entity_type->isSubclassOf(FieldableEntityInterface::CLASS)) {
+//          $entity_type_id = $entity_type->id();
+//          $revision_key = $entity_type->getKey('revision');
+//          /** @var \Drupal\Core\Entity\FieldableEntityStorageInterface $storage */
+//          $storage = $this->entityTypeManager->getStorage($entity_type_id);
+//          foreach ($this->entityFieldManager->getFieldStorageDefinitions($entity_type_id) as $storage_definition) {
+//            // @todo We need to trigger field purging here.
+//            //   See https://www.drupal.org/node/2282119.
+//            if ($storage_definition->getProvider() == 'multiversion' && !$storage->countFieldData($storage_definition, TRUE) && $storage_definition->getName() != $revision_key) {
+//              $update_manager->uninstallFieldStorageDefinition($storage_definition);
+//            }
+//          }
+//        }
+//      }
+//    }
+//
+//    $enabled_entity_types = \Drupal::config('multiversion.settings')->get('enabled_entity_types') ?: [];
+//    foreach ($entity_types as $entity_type_id => $entity_type) {
+//      if (($key = array_search($entity_type_id, $enabled_entity_types)) !== FALSE) {
+//        unset($enabled_entity_types[$key]);
+//      }
+//    }
+//    if ($entity_types_to_disable === NULL) {
+//      $enabled_entity_types = [];
+//    }
+//    \Drupal::configFactory()
+//      ->getEditable('multiversion.settings')
+//      ->set('enabled_entity_types', $enabled_entity_types)
+//      ->save();
+//
+//    self::disableMigrationIsActive(array_keys($entity_types));
+//    $migration->applyNewStorage();
+//
+//    // Temporarily disable the maintenance of the {comment_entity_statistics} table.
+//    $this->state->set('comment.maintain_entity_statistics', FALSE);
+//    \Drupal::state()->resetCache();
+//
+//    // Definitions will now be updated. So fetch the new ones.
+//    $updated_entity_types = [];
+//    foreach ($entity_types as $entity_type_id => $entity_type) {
+//      $updated_entity_types[$entity_type_id] = $this->entityTypeManager->getStorage($entity_type_id)->getEntityType();
+//    }
+//    foreach ($updated_entity_types as $entity_type_id => $entity_type) {
+//      // Drop unique key from uuid on each entity type.
+//      $base_table = $entity_type->getBaseTable();
+//      $uuid_key = $entity_type->getKey('uuid');
+//      $this->connection->schema()->dropUniqueKey($base_table, $entity_type_id . '_field__' . $uuid_key . '__value');
+//
+//      // Migrate from the temporary storage to the drupal default storage.
+//      if ($has_data[$entity_type_id]) {
+//        $migration->migrateContentFromTemp($entity_type);
+//        $migration->cleanupMigration($entity_type_id . '__to_tmp');
+//        $migration->cleanupMigration($entity_type_id . '__from_tmp');
+//      }
+//
+//      $this->state->delete("multiversion.migration_done.$entity_type_id");
+//    }
+//
+//    // Enable the the maintenance of entity statistics for comments.
+//    $this->state->set('comment.maintain_entity_statistics', TRUE);
+//
+//    // Clean up after us.
+//    $migration->uninstallDependencies();
+//    self::disableMigrationIsActive(FALSE);
+//
+//    $this->state->delete('multiversion.migration_done');
+//
     return $this;
   }
 
@@ -442,63 +404,6 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     // @todo: {@link https://www.drupal.org/node/2597478 Switch to BERT
     // serialization format instead of JSON.}
     return $this->serializer->serialize($term, 'json');
-  }
-
-  /**
-   * Factory method for a new Multiversion migration.
-   *
-   * @return \Drupal\multiversion\MultiversionMigrationInterface
-   */
-  protected function createMigration() {
-    return MultiversionMigration::create($this->container, $this->entityTypeManager, $this->entityFieldManager);
-  }
-
-  protected function prepareContentForMigration($entity_types, MultiversionMigrationInterface $migration) {
-    $has_data = [];
-    // Walk through and verify that the original storage is in good order.
-    // Flakey contrib modules or mocked tests where some schemas aren't properly
-    // installed should be ignored.
-    foreach ($entity_types as $entity_type_id => $entity_type) {
-      /** @var \Drupal\Core\Entity\EntityStorageInterface $storage */
-      $storage = $this->entityTypeManager->getStorage($entity_type_id);
-
-      $has_data[$entity_type_id] = FALSE;
-      try {
-        if ($storage->hasData()) {
-          $has_data[$entity_type_id] = TRUE;
-        }
-      }
-      catch (\Exception $e) {
-        // Don't bother with this entity type any more.
-        unset($entity_types[$entity_type_id]);
-      }
-
-      if ($has_data[$entity_type_id]) {
-        // Migrate content to temporary storage.
-        if ($storage->getEntityTypeId() === 'file') {
-          $migration->copyFilesToMigrateDirectory($storage);
-        }
-        $migration->migrateContentToTemp($storage->getEntityType());
-      }
-    }
-
-    // Empty old storages. Do this just after migrating all entities to
-    // temporary storage because deleting some entity types could delete
-    // referenced entities (E.g.: deleting poll entities will also delete
-    // poll_choice).
-    foreach ($entity_types as $entity_type_id => $entity_type) {
-      if ($has_data[$entity_type_id] === TRUE) {
-        /** @var \Drupal\Core\Entity\EntityStorageInterface $storage */
-        $storage = $this->entityTypeManager->getStorage($entity_type_id);
-
-        // Because of the way the Entity API treats entity definition updates we
-        // need to ensure each storage is empty before we can apply the new
-        // definition.
-        $migration->emptyOldStorage($storage);
-      }
-    }
-
-    return $has_data;
   }
 
 }

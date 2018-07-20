@@ -30,14 +30,21 @@ function multiversion_entity_type_alter(array &$entity_types) {
   $manager = \Drupal::service('multiversion.manager');
   foreach ($entity_types as $entity_type) {
     if ($manager->allowToAlter($entity_type)) {
+      $entity_keys = $entity_type->getKeys();
+
+      // Add the 'published' entity key to the entity type.
+      if (empty($entity_keys['published'])) {
+        $entity_keys['published'] = 'status';
+        $entity_type->set('entity_keys', $entity_keys);
+      }
+
       // Make all content entity types revisionable.
       if (!$entity_type->isRevisionable()) {
         // We only need to set the revision key to make an entity type
         // revisionable. The table names will be handled by the storage class.
         // @see \Drupal\Core\Entity\Sql\SqlContentEntityStorage::initTableLayout
-        $keys = $entity_type->getKeys();
-        $keys['revision'] = 'revision_id';
-        $entity_type->set('entity_keys', $keys);
+        $entity_keys['revision'] = 'revision_id';
+        $entity_type->set('entity_keys', $entity_keys);
         if ($entity_type->getRevisionTable() === null) {
           $entity_type->set('revision_table', $entity_type->id() . '_revision');
         }
@@ -95,9 +102,9 @@ function multiversion_entity_type_alter(array &$entity_types) {
     }
   }
 
-  if (isset($entity_types['block_content']) && $manager->allowToAlter($entity_types['block_content'])) {
-    $entity_types['block']->setHandlerClass('storage', 'Drupal\multiversion\Entity\Storage\Sql\BlockStorage');
-  }
+//  if (isset($entity_types['block_content']) && $manager->allowToAlter($entity_types['block_content'])) {
+//    $entity_types['block']->setHandlerClass('storage', 'Drupal\multiversion\Entity\Storage\Sql\BlockStorage');
+//  }
 }
 
 /**
@@ -126,10 +133,23 @@ function multiversion_entity_base_field_info(EntityTypeInterface $entity_type) {
     // ensure that entity types that we enabled revisions for get a revision
     // field definition of a type that we expect.
     $fields[$revision_key] = BaseFieldDefinition::create('integer')
-      ->setLabel(t('Revision ID'))
-      ->setDescription(t('The local revision ID of the entity.'))
+      ->setName($revision_key)
+      ->setTargetEntityTypeId($entity_type->id())
+      ->setTargetBundle(NULL)
+      ->setLabel(new TranslatableMarkup('Revision ID'))
       ->setReadOnly(TRUE)
       ->setSetting('unsigned', TRUE);
+
+    // Get the 'published' key for the published status field.
+    $published_key = $entity_type->getKey('published') ?: 'status';
+
+    // Add the status field.
+    $fields[$published_key] = BaseFieldDefinition::create('boolean')
+      ->setLabel(t('Publishing status'))
+      ->setDescription(t('A boolean indicating the published state.'))
+      ->setRevisionable(TRUE)
+      ->setTranslatable(TRUE)
+      ->setDefaultValue(TRUE);
 
     // This field shouldn't really be revisionable since all revisions for an
     // entity will only ever exist in one and the same workspace. But we mark
@@ -209,30 +229,30 @@ function multiversion_field_info_alter(&$info) {
  * @param array $fields
  * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
  */
-function multiversion_entity_base_field_info_alter(&$fields, EntityTypeInterface $entity_type) {
-  /** @var \Drupal\multiversion\MultiversionManagerInterface $manager */
-  $manager = \Drupal::service('multiversion.manager');
-  if ($manager->allowToAlter($entity_type)) {
-    $exclude_fields = [
-      $entity_type->getKey('id'),
-      $entity_type->getKey('revision'),
-      $entity_type->getKey('uuid'),
-      $entity_type->getKey('bundle'),
-      $entity_type->getKey('langcode'),
-      'workspace',
-      '_deleted',
-      '_rev',
-    ];
-    if ($entity_type->id() == 'comment') {
-      $exclude_fields[] = 'comment_type';
-    }
-    foreach ($fields as $key => $field) {
-      if (!in_array($key, $exclude_fields)) {
-        $field->setRevisionable(TRUE);
-      }
-    }
-  }
-}
+//function multiversion_entity_base_field_info_alter(&$fields, EntityTypeInterface $entity_type) {
+//  /** @var \Drupal\multiversion\MultiversionManagerInterface $manager */
+//  $manager = \Drupal::service('multiversion.manager');
+//  if ($manager->allowToAlter($entity_type)) {
+//    $exclude_fields = [
+//      $entity_type->getKey('id'),
+//      $entity_type->getKey('revision'),
+//      $entity_type->getKey('uuid'),
+//      $entity_type->getKey('bundle'),
+//      $entity_type->getKey('langcode'),
+//      'workspace',
+//      '_deleted',
+//      '_rev',
+//    ];
+//    if ($entity_type->id() == 'comment') {
+//      $exclude_fields[] = 'comment_type';
+//    }
+//    foreach ($fields as $key => $field) {
+//      if (!in_array($key, $exclude_fields)) {
+//        $field->setRevisionable(TRUE);
+//      }
+//    }
+//  }
+//}
 
 /**
  * Implements hook_views_data_alter().
