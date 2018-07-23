@@ -3,13 +3,18 @@
 namespace Drupal\multiversion\Entity\Storage\Sql;
 
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface;
+use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Sql\SqlContentEntityStorageSchemaConverter;
 use Drupal\Core\Entity\Sql\TemporaryTableMapping;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\KeyValueStore\KeyValueStoreInterface;
+use Drupal\Core\Site\Settings;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 class ContentEntityStorageSchemaConverter extends SqlContentEntityStorageSchemaConverter {
 
@@ -113,6 +118,12 @@ class ContentEntityStorageSchemaConverter extends SqlContentEntityStorageSchemaC
 
         // Update the field storage definitions.
         $this->updateFieldStorageDefinitionsToRevisionable($actual_entity_type, $sandbox['original_storage_definitions'], $fields_to_update);
+
+        // Install the published status field.
+//        $this->installPublishedStatusField($actual_entity_type);
+
+        // Install the fields provided by Multiversion.
+        $this->installMultiversionFields($actual_entity_type);
       }
       catch (\Exception $e) {
         // Something went wrong, bring back the original tables.
@@ -141,6 +152,253 @@ class ContentEntityStorageSchemaConverter extends SqlContentEntityStorageSchemaC
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  protected function updateFieldStorageDefinitionsToRevisionable(ContentEntityTypeInterface $entity_type, array $storage_definitions, array $fields_to_update = [], $update_cached_definitions = TRUE) {
+    $updated_storage_definitions = array_map(function ($storage_definition) {
+      return clone $storage_definition;
+    }, $storage_definitions);
+
+    // Update the 'langcode' field manually, as it is configured in the base
+    // content entity field definitions.
+    if ($entity_type->hasKey('langcode')) {
+      $fields_to_update = array_merge([$entity_type->getKey('langcode')], $fields_to_update);
+    }
+
+    foreach ($fields_to_update as $field_name) {
+      if (!empty($updated_storage_definitions[$field_name]) && !$updated_storage_definitions[$field_name]->isRevisionable()) {
+        $updated_storage_definitions[$field_name]->setRevisionable(TRUE);
+
+        if ($update_cached_definitions) {
+          $this->entityDefinitionUpdateManager->updateFieldStorageDefinition($updated_storage_definitions[$field_name]);
+        }
+      }
+    }
+
+    // Add the revision ID field.
+    $revision_field = BaseFieldDefinition::create('integer')
+      ->setName($entity_type->getKey('revision'))
+      ->setTargetEntityTypeId($entity_type->id())
+      ->setTargetBundle(NULL)
+      ->setLabel(new TranslatableMarkup('Revision ID'))
+      ->setReadOnly(TRUE)
+      ->setSetting('unsigned', TRUE);
+
+    if ($update_cached_definitions) {
+      $this->entityDefinitionUpdateManager->installFieldStorageDefinition($revision_field->getName(), $entity_type->id(), $entity_type->getProvider(), $revision_field);
+    }
+    $updated_storage_definitions[$entity_type->getKey('revision')] = $revision_field;
+
+    // Add the default revision flag field.
+    $field_name = $entity_type->getRevisionMetadataKey('revision_default');
+    $storage_definition = BaseFieldDefinition::create('boolean')
+      ->setName($field_name)
+      ->setTargetEntityTypeId($entity_type->id())
+      ->setTargetBundle(NULL)
+      ->setLabel(t('Default revision'))
+      ->setDescription(t('A flag indicating whether this was a default revision when it was saved.'))
+      ->setStorageRequired(TRUE)
+      ->setTranslatable(FALSE)
+      ->setRevisionable(TRUE);
+
+    if ($update_cached_definitions) {
+      $this->entityDefinitionUpdateManager->installFieldStorageDefinition($field_name, $entity_type->id(), $entity_type->getProvider(), $storage_definition);
+    }
+    $updated_storage_definitions[$field_name] = $storage_definition;
+
+    // Add the 'revision_translation_affected' field if needed.
+    if ($entity_type->isTranslatable()) {
+      $revision_translation_affected_field = BaseFieldDefinition::create('boolean')
+        ->setName($entity_type->getKey('revision_translation_affected'))
+        ->setTargetEntityTypeId($entity_type->id())
+        ->setTargetBundle(NULL)
+        ->setLabel(new TranslatableMarkup('Revision translation affected'))
+        ->setDescription(new TranslatableMarkup('Indicates if the last edit of a translation belongs to current revision.'))
+        ->setReadOnly(TRUE)
+        ->setRevisionable(TRUE)
+        ->setTranslatable(TRUE);
+
+      if ($update_cached_definitions) {
+        $this->entityDefinitionUpdateManager->installFieldStorageDefinition($revision_translation_affected_field->getName(), $entity_type->id(), $entity_type->getProvider(), $revision_translation_affected_field);
+      }
+      $updated_storage_definitions[$entity_type->getKey('revision_translation_affected')] = $revision_translation_affected_field;
+    }
+
+    return $updated_storage_definitions;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function copyData(array &$sandbox) {
+    /** @var \Drupal\Core\Entity\Sql\TemporaryTableMapping $temporary_table_mapping */
+    $temporary_table_mapping = $sandbox['temporary_table_mapping'];
+    $temporary_entity_type = $sandbox['temporary_entity_type'];
+    $original_table_mapping = $sandbox['original_table_mapping'];
+    $original_entity_type = $sandbox['original_entity_type'];
+
+    $original_base_table = $original_entity_type->getBaseTable();
+
+    $revision_id_key = $temporary_entity_type->getKey('revision');
+    $published_key = $temporary_entity_type->getKey('published');
+    $revision_default_key = $temporary_entity_type->getRevisionMetadataKey('revision_default');
+    $revision_translation_affected_key = $temporary_entity_type->getKey('revision_translation_affected');
+
+    // If 'progress' is not set, then this will be the first run of the batch.
+    if (!isset($sandbox['progress'])) {
+      $sandbox['progress'] = 0;
+      $sandbox['current_id'] = 0;
+      $sandbox['max'] = $this->database->select($original_base_table)
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+    }
+
+    $id = $original_entity_type->getKey('id');
+
+    // Define the step size.
+    $step_size = Settings::get('entity_update_batch_size', 50);
+
+    // Get the next entity IDs to migrate.
+    $entity_ids = $this->database->select($original_base_table)
+      ->fields($original_base_table, [$id])
+      ->condition($id, $sandbox['current_id'], '>')
+      ->orderBy($id, 'ASC')
+      ->range(0, $step_size)
+      ->execute()
+      ->fetchAllKeyed(0, 0);
+
+    /** @var \Drupal\Core\Entity\Sql\SqlContentEntityStorage $storage */
+    $storage = $this->entityTypeManager->getStorage($temporary_entity_type->id());
+    $storage->setEntityType($original_entity_type);
+    $storage->setTableMapping($original_table_mapping);
+
+    $entities = $storage->loadMultiple($entity_ids);
+
+    // Now inject the temporary entity type definition and table mapping in the
+    // storage and re-save the entities.
+    $storage->setEntityType($temporary_entity_type);
+    $storage->setTableMapping($temporary_table_mapping);
+
+    foreach ($entities as $entity_id => $entity) {
+      try {
+        // Set the revision ID to be same as the entity ID.
+        $entity->set($revision_id_key, $entity_id);
+
+        // Set the Published status to TRUE.
+//        $entity->set($published_key, TRUE);
+
+        // We had no revisions so far, so the existing data belongs to the
+        // default revision now.
+        $entity->set($revision_default_key, TRUE);
+
+        // Set the 'revision_translation_affected' flag to TRUE to match the
+        // previous API return value: if the field was not defined the value
+        // returned was always TRUE.
+        if ($temporary_entity_type->isTranslatable()) {
+          $entity->set($revision_translation_affected_key, TRUE);
+        }
+
+        // Treat the entity as new in order to make the storage do an INSERT
+        // rather than an UPDATE.
+        $entity->enforceIsNew(TRUE);
+
+        // Finally, save the entity in the temporary storage.
+        $storage->save($entity);
+      }
+      catch (\Exception $e) {
+        // In case of an error during the save process, we need to roll back the
+        // original entity type and field storage definitions and clean up the
+        // temporary tables.
+        $this->restoreOriginalDefinitions($sandbox);
+
+        foreach ($temporary_table_mapping->getTableNames() as $table_name) {
+          $this->database->schema()->dropTable($table_name);
+        }
+
+        // Re-throw the original exception with a helpful message.
+        throw new EntityStorageException("The entity update process failed while processing the entity {$original_entity_type->id()}:$entity_id.", $e->getCode(), $e);
+      }
+
+      $sandbox['progress']++;
+      $sandbox['current_id'] = $entity_id;
+    }
+
+    // If we're not in maintenance mode, the number of entities could change at
+    // any time so make sure that we always use the latest record count.
+    $sandbox['max'] = $this->database->select($original_base_table)
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+
+    $sandbox['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['progress'] / $sandbox['max']);
+  }
+
+  protected function installPublishedStatusField(ContentEntityTypeInterface $entity_type) {
+    // Get the 'published' key for the published status field.
+    $published_key = $entity_type->getKey('published') ?: 'status';
+
+    // Add the status field.
+    $field = BaseFieldDefinition::create('boolean')
+      ->setName($published_key)
+      ->setLabel(t('Publishing status'))
+      ->setDescription(t('A boolean indicating the published state.'))
+      ->setRevisionable(TRUE)
+      ->setTranslatable(TRUE)
+      ->setDefaultValue(TRUE);
+
+    $has_content_translation_status_field = \Drupal::moduleHandler()->moduleExists('content_translation') && $this->entityDefinitionUpdateManager->getFieldStorageDefinition('content_translation_status', $entity_type->id());
+    if ($has_content_translation_status_field) {
+      $field->setInitialValueFromField('content_translation_status', TRUE);
+    }
+    else {
+      $field->setInitialValue(TRUE);
+    }
+
+    $this->entityDefinitionUpdateManager->installFieldStorageDefinition($published_key, $entity_type->id(), $field->getProvider(), $field);
+
+    // Uninstall the 'content_translation_status' field if needed.
+    if ($has_content_translation_status_field) {
+      $content_translation_status = $this->entityDefinitionUpdateManager->getFieldStorageDefinition('content_translation_status', 'taxonomy_term');
+      $this->entityDefinitionUpdateManager->uninstallFieldStorageDefinition($content_translation_status);
+    }
+  }
+
+  protected function installMultiversionFields(ContentEntityTypeInterface $entity_type) {
+    $fields[] = BaseFieldDefinition::create('workspace_reference')
+      ->setName('workspace')
+      ->setLabel(t('Workspace reference'))
+      ->setDescription(t('The workspace this entity belongs to.'))
+      ->setSetting('target_type', 'workspace')
+      ->setRevisionable(FALSE)
+      ->setTranslatable(FALSE)
+      ->setCardinality(1)
+      ->setReadOnly(TRUE);
+
+    $fields[] = BaseFieldDefinition::create('boolean')
+      ->setName('_deleted')
+      ->setLabel(t('Deleted flag'))
+      ->setDescription(t('Indicates if the entity is flagged as deleted or not.'))
+      ->setRevisionable(TRUE)
+      ->setTranslatable(FALSE)
+      ->setDefaultValue(FALSE)
+      ->setCardinality(1);
+
+    $fields[] = BaseFieldDefinition::create('revision_token')
+      ->setName('_rev')
+      ->setLabel(t('Revision token'))
+      ->setDescription(t('The token for this entity revision.'))
+      ->setRevisionable(TRUE)
+      ->setTranslatable(FALSE)
+      ->setCardinality(1)
+      ->setReadOnly(TRUE);
+
+    foreach ($fields as $field) {
+      $this->entityDefinitionUpdateManager->installFieldStorageDefinition($field->getName(), $entity_type->id(), $field->getProvider(), $field);
+    }
+  }
+
   protected function getFieldsToUpdate() {
     $base_field_definitions = $this->entityFieldManager->getBaseFieldDefinitions($this->entityTypeId);
     $entity_type = $this->entityDefinitionUpdateManager->getEntityType($this->entityTypeId);
@@ -149,9 +407,6 @@ class ContentEntityStorageSchemaConverter extends SqlContentEntityStorageSchemaC
       $entity_type->getKey('revision') ?: 'revision_id',
       $entity_type->getKey('uuid'),
       $entity_type->getKey('bundle'),
-      $entity_type->getKey('langcode'),
-      'revision_translation_affected',
-      'revision_default',
       'workspace',
       '_deleted',
       '_rev',

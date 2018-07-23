@@ -185,9 +185,8 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
   public function isEnabledEntityType(EntityTypeInterface $entity_type) {
     if ($this->isSupportedEntityType($entity_type)) {
       $entity_type_id = $entity_type->id();
-      $migration_done = $this->state->get("multiversion.migration_done.$entity_type_id", FALSE);
       $enabled_entity_types = \Drupal::config('multiversion.settings')->get('enabled_entity_types') ?: [];
-      if ($migration_done && in_array($entity_type_id, $enabled_entity_types)) {
+      if (in_array($entity_type_id, $enabled_entity_types)) {
         return TRUE;
       }
     }
@@ -200,7 +199,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
   public function allowToAlter(EntityTypeInterface $entity_type) {
     $supported_entity_types = \Drupal::config('multiversion.settings')->get('supported_entity_types') ?: [];
     $id = $entity_type->id();
-    $enable_migration = self::enableIsActive();
+    $enable_active = self::enableIsActive();
     $disable_migration = self::disableMigrationIsActive();
     // Don't allow to alter entity type that is not supported.
     if (!in_array($id, $supported_entity_types)) {
@@ -211,7 +210,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       return FALSE;
     }
     // Allow to alter entity type that is in process to be enabled.
-    if (is_array($enable_migration) && in_array($id, $enable_migration)) {
+    if (is_array($enable_active) && in_array($id, $enable_active)) {
       return TRUE;
     }
     return ($this->isEnabledEntityType($entity_type));
@@ -265,6 +264,26 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
         $multiversion_settings
           ->set('enabled_entity_types', $enabled_entity_types)
           ->save();
+
+        // Reload the entity type.
+        $this->entityTypeManager->clearCachedDefinitions();
+        $entity_type = $this->entityTypeManager->getStorage($entity_type_id)->getEntityType();
+
+        // Make sure that 'id', 'revision' and 'langcode' are primary keys.
+        if ($entity_type->id() != 'file' && $entity_type->get('local') != TRUE && !empty($entity_type->getKey('langcode'))) {
+          $schema = $this->connection->schema();
+          // Get the tables name used for base table and revision table.
+          $table_base = ($entity_type->isTranslatable()) ? $entity_type->getDataTable() : $entity_type->getBaseTable();
+          $table_revision = ($entity_type->isTranslatable()) ? $entity_type->getRevisionDataTable() : $entity_type->getRevisionTable();
+          if ($table_base) {
+            $schema->dropPrimaryKey($table_base);
+            $schema->addPrimaryKey($table_base, [$entity_type->getKey('id'), 'langcode']);
+          }
+          if ($table_revision) {
+            $schema->dropPrimaryKey($table_revision);
+            $schema->addPrimaryKey($table_revision, [$entity_type->getKey('revision'), 'langcode']);
+          }
+        }
       }
       catch (\Throwable $e) {
         $arguments = Error::decodeException($e) + ['%entity_type' => $entity_type_id];

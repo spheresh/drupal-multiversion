@@ -120,53 +120,30 @@ function multiversion_entity_base_field_info(EntityTypeInterface $entity_type) {
   if ($manager->allowToAlter($entity_type)) {
     $fields = [];
 
-    // @todo: Alter the entity label field to make it revisionable.
-
-    // In some scenarios where's in a state of limbo where we've already
-    // altered and enabled the entity type but we're given an old entity type
-    // definition for this hook and we get an empty revision key. However,
-    // these are always the entity types that Multiversion has enabled revisions
-    // on, so we can assume the same name of the revision key.
-    $revision_key = $entity_type->getKey('revision') ?: 'revision_id';
-
-    // This will essentially overwrite the revision field definition but also
-    // ensure that entity types that we enabled revisions for get a revision
-    // field definition of a type that we expect.
-    $fields[$revision_key] = BaseFieldDefinition::create('integer')
-      ->setName($revision_key)
-      ->setTargetEntityTypeId($entity_type->id())
-      ->setTargetBundle(NULL)
-      ->setLabel(new TranslatableMarkup('Revision ID'))
-      ->setReadOnly(TRUE)
-      ->setSetting('unsigned', TRUE);
-
     // Get the 'published' key for the published status field.
     $published_key = $entity_type->getKey('published') ?: 'status';
 
     // Add the status field.
-    $fields[$published_key] = BaseFieldDefinition::create('boolean')
-      ->setLabel(t('Publishing status'))
-      ->setDescription(t('A boolean indicating the published state.'))
-      ->setRevisionable(TRUE)
-      ->setTranslatable(TRUE)
-      ->setDefaultValue(TRUE);
+//    $fields[$published_key] = BaseFieldDefinition::create('boolean')
+//      ->setName($published_key)
+//      ->setLabel(t('Publishing status'))
+//      ->setDescription(t('A boolean indicating the published state.'))
+//      ->setRevisionable(TRUE)
+//      ->setTranslatable(TRUE)
+//      ->setDefaultValue(TRUE);
 
-    // This field shouldn't really be revisionable since all revisions for an
-    // entity will only ever exist in one and the same workspace. But we mark
-    // this as revisionable to make the storage query more performance because
-    // then we don't need to join the data table (which it isn't by default).
-    if ($entity_type->get('workspace') !== FALSE) {
-      $fields['workspace'] = BaseFieldDefinition::create('workspace_reference')
-        ->setLabel(t('Workspace reference'))
-        ->setDescription(t('The workspace this entity belongs to.'))
-        ->setSetting('target_type', 'workspace')
-        ->setRevisionable(FALSE)
-        ->setTranslatable(FALSE)
-        ->setCardinality(1)
-        ->setReadOnly(TRUE);
-    }
+    $fields['workspace'] = BaseFieldDefinition::create('workspace_reference')
+      ->setName('workspace')
+      ->setLabel(t('Workspace reference'))
+      ->setDescription(t('The workspace this entity belongs to.'))
+      ->setSetting('target_type', 'workspace')
+      ->setRevisionable(FALSE)
+      ->setTranslatable(FALSE)
+      ->setCardinality(1)
+      ->setReadOnly(TRUE);
 
     $fields['_deleted'] = BaseFieldDefinition::create('boolean')
+      ->setName('_deleted')
       ->setLabel(t('Deleted flag'))
       ->setDescription(t('Indicates if the entity is flagged as deleted or not.'))
       ->setRevisionable(TRUE)
@@ -175,29 +152,13 @@ function multiversion_entity_base_field_info(EntityTypeInterface $entity_type) {
       ->setCardinality(1);
 
     $fields['_rev'] = BaseFieldDefinition::create('revision_token')
+      ->setName('_rev')
       ->setLabel(t('Revision token'))
       ->setDescription(t('The token for this entity revision.'))
       ->setRevisionable(TRUE)
       ->setTranslatable(FALSE)
       ->setCardinality(1)
       ->setReadOnly(TRUE);
-
-    // Get the minor version only from the \Drupal::VERSION string.
-    $minor_version = substr(\Drupal::VERSION, 0, 3);
-
-    // Add the 'revision_translation_affected' field if needed. Limit this to
-    // Drupal version 8.4 and higher.
-    if (version_compare($minor_version, '8.4', '>=') && $entity_type->isTranslatable()) {
-      $fields[$entity_type->getKey('revision_translation_affected')] = BaseFieldDefinition::create('boolean')
-        ->setName($entity_type->getKey('revision_translation_affected'))
-        ->setTargetEntityTypeId($entity_type->id())
-        ->setTargetBundle(NULL)
-        ->setLabel(new TranslatableMarkup('Revision translation affected'))
-        ->setDescription(new TranslatableMarkup('Indicates if the last edit of a translation belongs to current revision.'))
-        ->setReadOnly(TRUE)
-        ->setRevisionable(TRUE)
-        ->setTranslatable(TRUE);
-    }
 
     return $fields;
   }
@@ -229,30 +190,26 @@ function multiversion_field_info_alter(&$info) {
  * @param array $fields
  * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
  */
-//function multiversion_entity_base_field_info_alter(&$fields, EntityTypeInterface $entity_type) {
-//  /** @var \Drupal\multiversion\MultiversionManagerInterface $manager */
-//  $manager = \Drupal::service('multiversion.manager');
-//  if ($manager->allowToAlter($entity_type)) {
-//    $exclude_fields = [
-//      $entity_type->getKey('id'),
-//      $entity_type->getKey('revision'),
-//      $entity_type->getKey('uuid'),
-//      $entity_type->getKey('bundle'),
-//      $entity_type->getKey('langcode'),
-//      'workspace',
-//      '_deleted',
-//      '_rev',
-//    ];
-//    if ($entity_type->id() == 'comment') {
-//      $exclude_fields[] = 'comment_type';
-//    }
-//    foreach ($fields as $key => $field) {
-//      if (!in_array($key, $exclude_fields)) {
-//        $field->setRevisionable(TRUE);
-//      }
-//    }
-//  }
-//}
+function multiversion_entity_base_field_info_alter(&$fields, EntityTypeInterface $entity_type) {
+  /** @var \Drupal\multiversion\MultiversionManagerInterface $manager */
+  $manager = \Drupal::service('multiversion.manager');
+  if ($manager->allowToAlter($entity_type)) {
+    $exclude_fields = [
+      $entity_type->getKey('id'),
+      $entity_type->getKey('revision') ?: 'revision_id',
+      $entity_type->getKey('uuid'),
+      $entity_type->getKey('bundle'),
+      'workspace',
+      '_deleted',
+      '_rev',
+    ];
+    foreach ($fields as $key => $field) {
+      if (!in_array($key, $exclude_fields)) {
+        $field->setRevisionable(TRUE);
+      }
+    }
+  }
+}
 
 /**
  * Implements hook_views_data_alter().

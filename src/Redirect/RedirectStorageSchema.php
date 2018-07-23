@@ -16,7 +16,7 @@ class RedirectStorageSchema extends SqlContentEntityStorageSchema {
   protected function getEntitySchema(ContentEntityTypeInterface $entity_type, $reset = FALSE) {
     $schema = parent::getEntitySchema($entity_type, $reset);
 
-    $schema['redirect']['indexes'] += [
+    $schema[$entity_type->getDataTable()]['indexes'] += [
       // Limit length to 191.
       'source_language' => [['redirect_source__path', 191], 'language'],
     ];
