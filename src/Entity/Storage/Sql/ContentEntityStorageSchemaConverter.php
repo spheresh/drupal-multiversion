@@ -286,9 +286,6 @@ class ContentEntityStorageSchemaConverter extends SqlContentEntityStorageSchemaC
         // Set the revision ID to be same as the entity ID.
         $entity->set($revision_id_key, $entity_id);
 
-        // Set the Published status to TRUE.
-//        $entity->set($published_key, TRUE);
-
         // We had no revisions so far, so the existing data belongs to the
         // default revision now.
         $entity->set($revision_default_key, TRUE);
@@ -342,6 +339,8 @@ class ContentEntityStorageSchemaConverter extends SqlContentEntityStorageSchemaC
     // Add the status field.
     $field = BaseFieldDefinition::create('boolean')
       ->setName($published_key)
+      ->setTargetEntityTypeId($entity_type->id())
+      ->setTargetBundle(NULL)
       ->setLabel(t('Publishing status'))
       ->setDescription(t('A boolean indicating the published state.'))
       ->setRevisionable(TRUE)
@@ -368,6 +367,8 @@ class ContentEntityStorageSchemaConverter extends SqlContentEntityStorageSchemaC
   protected function installMultiversionFields(ContentEntityTypeInterface $entity_type) {
     $fields[] = BaseFieldDefinition::create('workspace_reference')
       ->setName('workspace')
+      ->setTargetEntityTypeId($entity_type->id())
+      ->setTargetBundle(NULL)
       ->setLabel(t('Workspace reference'))
       ->setDescription(t('The workspace this entity belongs to.'))
       ->setSetting('target_type', 'workspace')
@@ -378,6 +379,8 @@ class ContentEntityStorageSchemaConverter extends SqlContentEntityStorageSchemaC
 
     $fields[] = BaseFieldDefinition::create('boolean')
       ->setName('_deleted')
+      ->setTargetEntityTypeId($entity_type->id())
+      ->setTargetBundle(NULL)
       ->setLabel(t('Deleted flag'))
       ->setDescription(t('Indicates if the entity is flagged as deleted or not.'))
       ->setRevisionable(TRUE)
@@ -387,6 +390,8 @@ class ContentEntityStorageSchemaConverter extends SqlContentEntityStorageSchemaC
 
     $fields[] = BaseFieldDefinition::create('revision_token')
       ->setName('_rev')
+      ->setTargetEntityTypeId($entity_type->id())
+      ->setTargetBundle(NULL)
       ->setLabel(t('Revision token'))
       ->setDescription(t('The token for this entity revision.'))
       ->setRevisionable(TRUE)

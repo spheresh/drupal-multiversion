@@ -54,12 +54,15 @@ function multiversion_entity_type_alter(array &$entity_types) {
       }
 
       $namespace = 'Drupal\multiversion\Entity\Storage\Sql';
+      $original_storage_class = $entity_type->getHandlerClass('storage');
+      $entity_type->setHandlerClass('original_storage', $original_storage_class);
       switch ($entity_type->id()) {
         case 'node':
           $entity_type->setHandlerClass('storage', "$namespace\\NodeStorage");
           break;
 
         case 'taxonomy_term':
+//          $entity_type->setClass('Drupal\multiversion\Entity\Term');
           $entity_type->setHandlerClass('storage', "$namespace\\TermStorage");
           break;
 
@@ -73,11 +76,20 @@ function multiversion_entity_type_alter(array &$entity_types) {
           break;
 
         case 'file':
+//          $entity_type->setClass('Drupal\multiversion\Entity\File');
           $entity_type->setHandlerClass('storage', "$namespace\\FileStorage");
           break;
 
         case 'media':
+//          $entity_type->setClass('Drupal\multiversion\Entity\Media');
           $entity_type->setHandlerClass('storage', "$namespace\\MediaStorage");
+          break;
+
+        case 'shortcut':
+//          $entity_type->setClass('Drupal\multiversion\Entity\Shortcut');
+          if (in_array($original_storage_class, [NULL, 'Drupal\Core\Entity\Sql\SqlContentEntityStorage'])) {
+            $entity_type->setHandlerClass('storage', "$namespace\\ContentEntityStorage");
+          }
           break;
 
         case 'poll':
@@ -88,13 +100,19 @@ function multiversion_entity_type_alter(array &$entity_types) {
           $entity_type->setHandlerClass('storage', "$namespace\\CropStorage");
           break;
 
+        case 'redirect':
+          $entity_type->setHandlerClass('storage_schema', 'Drupal\multiversion\Redirect\RedirectStorageSchema');
+          if (in_array($original_storage_class, [NULL, 'Drupal\Core\Entity\Sql\SqlContentEntityStorage'])) {
+            $entity_type->setHandlerClass('storage', "$namespace\\ContentEntityStorage");
+          }
+          break;
+
         default:
           $storage_class = $entity_type->getHandlerClass('storage');
 
           // We can only override the storage handler for entity types we know
           // what to expect of.
           if (in_array($storage_class, [NULL, 'Drupal\Core\Entity\Sql\SqlContentEntityStorage'])) {
-            $entity_type->setHandlerClass('original_storage', $entity_type->getHandlerClass('storage'));
             $entity_type->setHandlerClass('storage', "$namespace\\ContentEntityStorage");
           }
           break;
@@ -126,6 +144,8 @@ function multiversion_entity_base_field_info(EntityTypeInterface $entity_type) {
     // Add the status field.
 //    $fields[$published_key] = BaseFieldDefinition::create('boolean')
 //      ->setName($published_key)
+//      ->setTargetEntityTypeId($entity_type->id())
+//      ->setTargetBundle(NULL)
 //      ->setLabel(t('Publishing status'))
 //      ->setDescription(t('A boolean indicating the published state.'))
 //      ->setRevisionable(TRUE)
@@ -134,6 +154,8 @@ function multiversion_entity_base_field_info(EntityTypeInterface $entity_type) {
 
     $fields['workspace'] = BaseFieldDefinition::create('workspace_reference')
       ->setName('workspace')
+      ->setTargetEntityTypeId($entity_type->id())
+      ->setTargetBundle(NULL)
       ->setLabel(t('Workspace reference'))
       ->setDescription(t('The workspace this entity belongs to.'))
       ->setSetting('target_type', 'workspace')
@@ -144,6 +166,8 @@ function multiversion_entity_base_field_info(EntityTypeInterface $entity_type) {
 
     $fields['_deleted'] = BaseFieldDefinition::create('boolean')
       ->setName('_deleted')
+      ->setTargetEntityTypeId($entity_type->id())
+      ->setTargetBundle(NULL)
       ->setLabel(t('Deleted flag'))
       ->setDescription(t('Indicates if the entity is flagged as deleted or not.'))
       ->setRevisionable(TRUE)
@@ -153,6 +177,8 @@ function multiversion_entity_base_field_info(EntityTypeInterface $entity_type) {
 
     $fields['_rev'] = BaseFieldDefinition::create('revision_token')
       ->setName('_rev')
+      ->setTargetEntityTypeId($entity_type->id())
+      ->setTargetBundle(NULL)
       ->setLabel(t('Revision token'))
       ->setDescription(t('The token for this entity revision.'))
       ->setRevisionable(TRUE)
