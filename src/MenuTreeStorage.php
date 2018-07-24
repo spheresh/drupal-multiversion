@@ -11,7 +11,7 @@ use Drupal\Core\Menu\MenuTreeStorage as CoreMenuTreeStorage;
 class MenuTreeStorage extends CoreMenuTreeStorage {
 
   /**
-   * @var \Drupal\workspace\WorkspaceManagerInterface
+   * @var \Drupal\workspaces\WorkspaceManagerInterface
    */
   protected $workspaceManager;
 
@@ -30,7 +30,7 @@ class MenuTreeStorage extends CoreMenuTreeStorage {
     $this->options = $options;
 
     $this->entityTypeManager = \Drupal::service('entity_type.manager');
-    $this->workspaceManager = \Drupal::service('workspace.manager');
+    $this->workspaceManager = \Drupal::service('workspaces.manager');
 
     $this->menuCacheBackend = $menu_cache_backend;
   }

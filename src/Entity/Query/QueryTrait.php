@@ -83,7 +83,7 @@ trait QueryTrait {
     if ($this->workspaceId) {
       return $this->workspaceId;
     }
-    if ($workspace = \Drupal::service('workspace.manager')->getActiveWorkspace()) {
+    if ($workspace = \Drupal::service('workspaces.manager')->getActiveWorkspace()) {
       return $workspace->id();
     }
     return NULL;

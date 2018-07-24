@@ -4,7 +4,7 @@ namespace Drupal\multiversion\Tests;
 
 use Drupal\Core\Database\Database;
 use Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface;
-use Drupal\workspace\Entity\Workspace;
+use Drupal\workspaces\Entity\Workspace;
 
 /**
  * Test the content entity storage controller.

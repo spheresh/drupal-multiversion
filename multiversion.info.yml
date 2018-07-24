@@ -5,7 +5,7 @@ version: VERSION
 core: 8.x
 dependencies:
   - drupal:system (>=8.6.0)
-  - drupal:workspace
+  - drupal:workspaces
   - drupal:serialization
   - key_value:key_value
   - conflict:conflict

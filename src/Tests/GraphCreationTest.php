@@ -12,7 +12,7 @@ class GraphCreationTest extends MultiversionWebTestBase {
   public static $modules = ['entity_test', 'key_value', 'multiversion'];
 
   /**
-   * @var \Drupal\workspace\WorkspaceManagerInterface
+   * @var \Drupal\workspaces\WorkspaceManagerInterface
    */
   protected $workspaceManager;
 

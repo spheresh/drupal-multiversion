@@ -4,8 +4,8 @@ namespace Drupal\multiversion\Entity\Index;
 
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
-use Drupal\workspace\Entity\Workspace;
-use Drupal\workspace\WorkspaceManagerInterface;
+use Drupal\workspaces\Entity\Workspace;
+use Drupal\workspaces\WorkspaceManagerInterface;
 use Fhaculty\Graph\Graph;
 
 /**
@@ -26,7 +26,7 @@ class RevisionTreeIndex implements RevisionTreeIndexInterface {
   /**
    * The workspace manager service.
    *
-   * @var \Drupal\workspace\WorkspaceManagerInterface
+   * @var \Drupal\workspaces\WorkspaceManagerInterface
    */
   protected $workspaceManager;
 
@@ -49,7 +49,7 @@ class RevisionTreeIndex implements RevisionTreeIndexInterface {
    *
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
    *   The key value factory service.
-   * @param \Drupal\workspace\WorkspaceManagerInterface $workspace_manager
+   * @param \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager
    *   The workspace manager service.
    * @param \Drupal\multiversion\Entity\Index\MultiversionIndexFactory $index_factory
    *   The index factory service.

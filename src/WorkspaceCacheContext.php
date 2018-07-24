@@ -4,7 +4,7 @@ namespace Drupal\multiversion;
 
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\Context\CacheContextInterface;
-use Drupal\workspace\WorkspaceManagerInterface;
+use Drupal\workspaces\WorkspaceManagerInterface;
 
 /**
  * Defines the WorkspaceCacheContext service, for "per workspace" caching.
@@ -16,14 +16,14 @@ class WorkspaceCacheContext implements CacheContextInterface {
   /**
    * The workspace manager.
    *
-   * @var \Drupal\workspace\WorkspaceManagerInterface
+   * @var \Drupal\workspaces\WorkspaceManagerInterface
    */
   protected $workspaceManager;
 
   /**
    * Constructs a new WorkspaceCacheContext service.
    *
-   * @param \Drupal\workspace\WorkspaceManagerInterface $workspace_manager
+   * @param \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager
    *   The workspace manager.
    */
   public function __construct(WorkspaceManagerInterface $workspace_manager) {

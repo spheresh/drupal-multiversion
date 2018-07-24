@@ -7,7 +7,7 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Language\Language;
 use Drupal\Core\State\StateInterface;
-use Drupal\workspace\WorkspaceManagerInterface;
+use Drupal\workspaces\WorkspaceManagerInterface;
 use Drupal\redirect\Entity\Redirect;
 use Drupal\redirect\Exception\RedirectLoopException;
 use Drupal\redirect\RedirectRepository as ContribRedirectRepository;
@@ -17,7 +17,7 @@ class RedirectRepository extends ContribRedirectRepository {
   /**
    * The workspace manager.
    *
-   * @var \Drupal\workspace\WorkspaceManagerInterface
+   * @var \Drupal\workspaces\WorkspaceManagerInterface
    */
   private $workspaceManager;
 

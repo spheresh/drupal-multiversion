@@ -3,8 +3,8 @@
 namespace Drupal\multiversion\Conflict;
 
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
-use Drupal\workspace\Entity\Workspace;
-use Drupal\workspace\WorkspaceManagerInterface;
+use Drupal\workspaces\Entity\Workspace;
+use Drupal\workspaces\WorkspaceManagerInterface;
 
 /**
  * The Conflict Tracker service.
@@ -21,7 +21,7 @@ class ConflictTracker implements ConflictTrackerInterface {
   /**
    * The workspace manager service.
    *
-   * @var \Drupal\workspace\WorkspaceManagerInterface
+   * @var \Drupal\workspaces\WorkspaceManagerInterface
    */
   protected $workspaceManager;
 
@@ -42,7 +42,7 @@ class ConflictTracker implements ConflictTrackerInterface {
 
   /**
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
-   * @param \Drupal\workspace\WorkspaceManagerInterface $workspace_manager
+   * @param \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager
    */
   public function __construct(KeyValueFactoryInterface $key_value_factory, WorkspaceManagerInterface $workspace_manager) {
     $this->keyValueFactory = $key_value_factory;

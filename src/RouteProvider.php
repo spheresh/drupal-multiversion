@@ -5,7 +5,7 @@ namespace Drupal\multiversion;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Routing\RouteProvider as CoreRouteProvider;
-use Drupal\workspace\WorkspaceManagerInterface;
+use Drupal\workspaces\WorkspaceManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Path\CurrentPathStack;
@@ -21,7 +21,7 @@ class RouteProvider extends CoreRouteProvider {
   /**
    * The workspace manager.
    *
-   * @var \Drupal\workspace\WorkspaceManagerInterface
+   * @var \Drupal\workspaces\WorkspaceManagerInterface
    */
   private $workspaceManager;
 

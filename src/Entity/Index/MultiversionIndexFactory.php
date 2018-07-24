@@ -2,8 +2,8 @@
 
 namespace Drupal\multiversion\Entity\Index;
 
-use Drupal\workspace\Entity\Workspace;
-use Drupal\workspace\WorkspaceManagerInterface;
+use Drupal\workspaces\Entity\Workspace;
+use Drupal\workspaces\WorkspaceManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class MultiversionIndexFactory {

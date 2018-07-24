@@ -2,7 +2,7 @@
 
 namespace Drupal\multiversion\Tests\Views;
 
-use Drupal\workspace\Entity\Workspace;
+use Drupal\workspaces\Entity\Workspace;
 
 /**
  * Tests the workspace and current_workspace field handlers.
@@ -29,11 +29,11 @@ class WorkspaceTest extends MultiversionTestBase {
     $uid = $admin_user->id();
     $this->drupalLogin($admin_user);
 
-    /** @var \Drupal\workspace\WorkspaceManagerInterface $workspace_manager */
-    $workspace_manager = \Drupal::service('workspace.manager');
+    /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
+    $workspace_manager = \Drupal::service('workspaces.manager');
 
     // Get workspace nodes will be added to.
-    /** @var \Drupal\workspace\Entity\Workspace $initial_workspace */
+    /** @var \Drupal\workspaces\Entity\Workspace $initial_workspace */
     $initial_workspace = $workspace_manager->getActiveWorkspace();
 
     // Create two nodes on 'default' workspace.

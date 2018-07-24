@@ -25,7 +25,7 @@ class BlockStorage extends ConfigEntityStorage {
       list($provider, $uuid) = explode(':', $plugin_id);
       if ($provider && $provider === 'block_content' && $uuid) {
         $storage = $entity_type_manager->getStorage('block_content');
-        $active_workspace = \Drupal::service('workspace.manager')->getActiveWorkspace();
+        $active_workspace = \Drupal::service('workspaces.manager')->getActiveWorkspace();
         $loaded_entity = $storage->loadByProperties(['uuid' => $uuid, 'workspace' => $active_workspace->id()]);
         $loaded_entity = reset($loaded_entity);
         if ($loaded_entity instanceof ContentEntityInterface) {

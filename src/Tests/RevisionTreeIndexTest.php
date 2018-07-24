@@ -16,7 +16,7 @@ class RevisionTreeIndexTest extends MultiversionWebTestBase {
   public static $modules = ['entity_test', 'multiversion'];
 
   /**
-   * @var \Drupal\workspace\WorkspaceManagerInterface
+   * @var \Drupal\workspaces\WorkspaceManagerInterface
    */
   protected $workspaceManager;
 

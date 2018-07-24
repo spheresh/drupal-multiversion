@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\multiversion\Functional;
 
-use Drupal\workspace\Entity\Workspace;
+use Drupal\workspaces\Entity\Workspace;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 
@@ -54,7 +54,7 @@ class PathAliasTest extends BrowserTestBase {
     $stage->save();
 
     // Set live as the active workspace.
-    \Drupal::service('workspace.manager')->setActiveWorkspace($live);
+    \Drupal::service('workspaces.manager')->setActiveWorkspace($live);
 
     $alias = '/foo';
     $node1 = $this->drupalCreateNode();
@@ -66,7 +66,7 @@ class PathAliasTest extends BrowserTestBase {
     $this->assertEquals($alias, $stored_alias);
 
     // Set stage as the active workspace.
-    \Drupal::service('workspace.manager')->setActiveWorkspace($stage);
+    \Drupal::service('workspaces.manager')->setActiveWorkspace($stage);
 
     $stored_alias = $alias_storage->lookupPathAlias('/' . $node1->toUrl()->getInternalPath(), $node1->language()->getId());
     $this->assertFalse($stored_alias);
@@ -91,7 +91,7 @@ class PathAliasTest extends BrowserTestBase {
     $web_assert->pageTextContains('/node/' . $node2->id());
 
     // Set live as the active workspace.
-    \Drupal::service('workspace.manager')->setActiveWorkspace($live);
+    \Drupal::service('workspaces.manager')->setActiveWorkspace($live);
 
     $this->drupalGet($alias);
     $web_assert->statusCodeEquals(200);
@@ -114,7 +114,7 @@ class PathAliasTest extends BrowserTestBase {
     $web_assert->pageTextNotContains('/node/' . $node1->id());
 
     // Set stage as the active workspace.
-    \Drupal::service('workspace.manager')->setActiveWorkspace($stage);
+    \Drupal::service('workspaces.manager')->setActiveWorkspace($stage);
 
     $this->drupalGet($alias);
     $web_assert = $this->assertSession();
@@ -159,7 +159,7 @@ class PathAliasTest extends BrowserTestBase {
     $this->assertFalse($stored_alias);
 
     // Set live as the active workspace.
-    \Drupal::service('workspace.manager')->setActiveWorkspace($live);
+    \Drupal::service('workspaces.manager')->setActiveWorkspace($live);
     // Add an alias that should be accessible from all workspaces.
     $alias3 = '/aliases';
     $edit = [
@@ -173,7 +173,7 @@ class PathAliasTest extends BrowserTestBase {
 
 
     // Set stage as the active workspace.
-    \Drupal::service('workspace.manager')->setActiveWorkspace($stage);
+    \Drupal::service('workspaces.manager')->setActiveWorkspace($stage);
 
     $this->drupalGet('admin/config/search/path');
     $web_assert->statusCodeEquals(200);
@@ -190,7 +190,7 @@ class PathAliasTest extends BrowserTestBase {
     $web_assert->pageTextNotContains($alias3);
 
     // Set live as the active workspace.
-    \Drupal::service('workspace.manager')->setActiveWorkspace($live);
+    \Drupal::service('workspaces.manager')->setActiveWorkspace($live);
 
     $this->drupalGet('admin/config/search/path');
     $web_assert->statusCodeEquals(200);

@@ -5,7 +5,7 @@ services:
   # Index Factory
   multiversion.entity_index.factory:
     class: Drupal\multiversion\Entity\Index\MultiversionIndexFactory
-    arguments: ['@service_container', '@workspace.manager']
+    arguments: ['@service_container', '@workspaces.manager']
 
   # Index children
   multiversion.entity_index.sequence.scope:
@@ -27,34 +27,34 @@ services:
   # Indexes
   multiversion.entity_index.sequence:
     class: Drupal\multiversion\Entity\Index\SequenceIndex
-    arguments: ['@keyvalue.sorted_set', '@workspace.manager', '@multiversion.manager']
+    arguments: ['@keyvalue.sorted_set', '@workspaces.manager', '@multiversion.manager']
   multiversion.entity_index.id:
     class: Drupal\multiversion\Entity\Index\EntityIndex
-    arguments: ['@keyvalue', '@workspace.manager']
+    arguments: ['@keyvalue', '@workspaces.manager']
   multiversion.entity_index.uuid:
     class: Drupal\multiversion\Entity\Index\UuidIndex
-    arguments: ['@keyvalue', '@workspace.manager']
+    arguments: ['@keyvalue', '@workspaces.manager']
   multiversion.entity_index.rev:
     class: Drupal\multiversion\Entity\Index\RevisionIndex
-    arguments: ['@keyvalue', '@workspace.manager']
+    arguments: ['@keyvalue', '@workspaces.manager']
   multiversion.entity_index.rev.tree:
     class: Drupal\multiversion\Entity\Index\RevisionTreeIndex
-    arguments: ['@keyvalue', '@workspace.manager', '@multiversion.entity_index.factory']
+    arguments: ['@keyvalue', '@workspaces.manager', '@multiversion.entity_index.factory']
 
   multiversion.entity.query.sql:
     class: Drupal\multiversion\Entity\Query\Sql\QueryFactory
     arguments: ['@database']
   multiversion.manager:
     class: Drupal\multiversion\MultiversionManager
-    arguments: ['@workspace.manager', '@serializer', '@entity.manager', '@state', '@language_manager', '@cache.discovery', '@database', '@entity_field.manager']
+    arguments: ['@workspaces.manager', '@serializer', '@entity.manager', '@state', '@language_manager', '@cache.discovery', '@database', '@entity_field.manager']
     calls:
       - [setContainer, ['@service_container']]
   multiversion.conflict_tracker:
     class: Drupal\multiversion\Conflict\ConflictTracker
-    arguments: ['@keyvalue', '@workspace.manager']
+    arguments: ['@keyvalue', '@workspaces.manager']
   cache_context.workspace:
     class: Drupal\multiversion\WorkspaceCacheContext
-    arguments: ['@workspace.manager']
+    arguments: ['@workspaces.manager']
     tags:
       - { name: cache.context }
   logger.channel.workspace:
@@ -71,7 +71,7 @@ services:
   multiversion.alias_storage:
     decorates: 'path.alias_storage'
     class: Drupal\multiversion\AliasStorage
-    arguments: ['@database', '@module_handler', '@workspace.manager', '@entity_type.manager', '@state']
+    arguments: ['@database', '@module_handler', '@workspaces.manager', '@entity_type.manager', '@state']
     public: false
     decoration_priority: 50
     tags:
@@ -82,7 +82,7 @@ services:
   multiversion.route_provider:
     decorates: 'router.route_provider'
     class: Drupal\multiversion\RouteProvider
-    arguments: ['@database', '@state', '@path.current', '@cache.data', '@path_processor_manager', '@cache_tags.invalidator', 'router', '@language_manager', '@workspace.manager']
+    arguments: ['@database', '@state', '@path.current', '@cache.data', '@path_processor_manager', '@cache_tags.invalidator', 'router', '@language_manager', '@workspaces.manager']
     decoration_priority: 50
     tags:
       - { name: event_subscriber }

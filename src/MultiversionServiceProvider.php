@@ -35,7 +35,7 @@ class MultiversionServiceProvider extends ServiceProviderBase {
     try {
       $definition = $container->getDefinition('redirect.repository');
       $definition->setClass('Drupal\multiversion\Redirect\RedirectRepository')
-        ->addArgument(new Reference('workspace.manager'))
+        ->addArgument(new Reference('workspaces.manager'))
         ->addArgument(new Reference('state'));
     }
     catch (InvalidArgumentException $e) {

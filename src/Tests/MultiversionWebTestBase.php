@@ -46,7 +46,7 @@ abstract class MultiversionWebTestBase extends WebTestBase {
   /**
    * The workspace manager.
    *
-   * @var \Drupal\workspace\WorkspaceManagerInterface
+   * @var \Drupal\workspaces\WorkspaceManagerInterface
    */
   protected $workspaceManager;
 
@@ -81,7 +81,7 @@ abstract class MultiversionWebTestBase extends WebTestBase {
     $this->revTree = $this->container->get('multiversion.entity_index.rev.tree');
 
     $this->multiversionManager = $this->container->get('multiversion.manager');
-    $this->workspaceManager = $this->container->get('workspace.manager');
+    $this->workspaceManager = $this->container->get('workspaces.manager');
     $this->entityDefinitionUpdateManager = $this->container->get('entity.definition_update_manager');
 
     // Create Basic page and Article node types.

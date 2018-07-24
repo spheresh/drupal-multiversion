@@ -5,7 +5,7 @@ namespace Drupal\multiversion\Entity\Index;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\key_value\KeyValueStore\KeyValueSortedSetFactoryInterface;
 use Drupal\multiversion\MultiversionManagerInterface;
-use Drupal\workspace\WorkspaceManagerInterface;
+use Drupal\workspaces\WorkspaceManagerInterface;
 
 class SequenceIndex implements SequenceIndexInterface {
 
@@ -25,7 +25,7 @@ class SequenceIndex implements SequenceIndexInterface {
   protected $sortedSetFactory;
 
   /**
-   * @var \Drupal\workspace\WorkspaceManagerInterface
+   * @var \Drupal\workspaces\WorkspaceManagerInterface
    */
   protected $workspaceManager;
 
@@ -36,7 +36,7 @@ class SequenceIndex implements SequenceIndexInterface {
 
   /**
    * @param \Drupal\key_value\KeyValueStore\KeyValueSortedSetFactoryInterface $sorted_set_factory
-   * @param \Drupal\workspace\WorkspaceManagerInterface $workspace_manager
+   * @param \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager
    * @param \Drupal\multiversion\MultiversionManagerInterface $multiversion_manager
    */
   public function __construct(KeyValueSortedSetFactoryInterface $sorted_set_factory, WorkspaceManagerInterface $workspace_manager, MultiversionManagerInterface $multiversion_manager) {

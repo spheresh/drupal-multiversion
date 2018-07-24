@@ -14,7 +14,7 @@ class ComplexLcaResolverTest extends MultiversionWebTestBase {
   public static $modules = ['entity_test', 'key_value', 'multiversion', 'conflict'];
 
   /**
-   * @var \Drupal\workspace\WorkspaceManagerInterface
+   * @var \Drupal\workspaces\WorkspaceManagerInterface
    */
   protected $workspaceManager;
 

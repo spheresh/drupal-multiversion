@@ -13,7 +13,7 @@ use Drupal\Core\Path\AliasStorage as CoreAliasStorage;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
 use Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface;
-use Drupal\workspace\WorkspaceManagerInterface;
+use Drupal\workspaces\WorkspaceManagerInterface;
 
 /**
  * Extends the core AliasStore class. We need this to make possible aliases to
@@ -24,7 +24,7 @@ class AliasStorage extends CoreAliasStorage {
   /**
    * The workspace manager.
    *
-   * @var \Drupal\workspace\WorkspaceManagerInterface
+   * @var \Drupal\workspaces\WorkspaceManagerInterface
    */
   private $workspaceManager;
 

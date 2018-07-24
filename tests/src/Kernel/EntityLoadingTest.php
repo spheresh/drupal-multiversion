@@ -3,7 +3,7 @@
 namespace Drupal\Tests\multiversion\Kernel;
 
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\workspace\Entity\Workspace;
+use Drupal\workspaces\Entity\Workspace;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 
@@ -48,7 +48,7 @@ class EntityLoadingTest extends KernelTestBase {
     ]);
     $dau_workspace->save();
 
-    $workspace_manager = \Drupal::service('workspace.manager');
+    $workspace_manager = \Drupal::service('workspaces.manager');
     $this->assertEquals($un_workspace->id(), $workspace_manager->getActiveWorkspaceId());
 
     $node_type = NodeType::create([

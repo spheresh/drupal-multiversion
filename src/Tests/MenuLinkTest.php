@@ -4,7 +4,7 @@ namespace Drupal\multiversion\Tests;
 
 use Drupal\menu_link_content\Entity\MenuLinkContent;
 use Drupal\menu_link_content\MenuLinkContentInterface;
-use Drupal\workspace\Entity\Workspace;
+use Drupal\workspaces\Entity\Workspace;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -17,17 +17,17 @@ class MenuLinkTest extends WebTestBase {
   protected $strictConfigSchema = FALSE;
 
   /**
-   * @var \Drupal\workspace\WorkspaceManager
+   * @var \Drupal\workspaces\WorkspaceManager
    */
   protected $workspaceManager;
 
   /**
-   * @var \Drupal\workspace\Entity\Workspace
+   * @var \Drupal\workspaces\Entity\Workspace
    */
   protected $initialWorkspace;
 
   /**
-   * @var \Drupal\workspace\Entity\Workspace
+   * @var \Drupal\workspaces\Entity\Workspace
    */
   protected $newWorkspace;
 
@@ -47,7 +47,7 @@ class MenuLinkTest extends WebTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->workspaceManager = \Drupal::service('workspace.manager');
+    $this->workspaceManager = \Drupal::service('workspaces.manager');
     $web_user = $this->drupalCreateUser(['administer menu', 'administer workspaces']);
     $this->drupalLogin($web_user);
     $this->drupalPlaceBlock('system_menu_block:main');
