@@ -82,7 +82,6 @@ function multiversion_entity_type_alter(array &$entity_types) {
           break;
 
         case 'media':
-//          $entity_type->setClass('Drupal\multiversion\Entity\Media');
           $entity_type->setHandlerClass('storage', "$namespace\\MediaStorage");
           break;
 
