@@ -87,3 +87,6 @@ services:
     tags:
       - { name: event_subscriber }
       - { name: backend_overridable }
+  multiversion.schema_converter_factory:
+    class: Drupal\multiversion\Entity\Storage\Sql\MultiversionStorageSchemaConverterFactory
+    arguments: ['@entity_type.manager', '@entity.definition_update_manager', '@entity.last_installed_schema.repository', '@keyvalue', '@database', '@entity_field.manager', '@multiversion.manager', '@workspaces.manager']

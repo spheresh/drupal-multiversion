@@ -16,7 +16,7 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Utility\Error;
 use Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface;
-use Drupal\multiversion\Entity\Storage\Sql\ContentEntityStorageSchemaConverter;
+use Drupal\multiversion\Entity\Storage\Sql\MultiversionStorageSchemaConverter;
 use Drupal\workspaces\WorkspaceManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareTrait;
@@ -247,15 +247,8 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       if (in_array($entity_type_id, $enabled_entity_types)) {
         continue;
       }
-      $schema_converter = new ContentEntityStorageSchemaConverter(
-        $entity_type_id,
-        $this->entityTypeManager,
-        \Drupal::entityDefinitionUpdateManager(),
-        \Drupal::service('entity.last_installed_schema.repository'),
-        \Drupal::keyValue('entity.storage_schema.sql'),
-        $this->connection,
-        $this->entityFieldManager
-      );
+      $schema_converter = \Drupal::service('multiversion.schema_converter_factory')
+        ->getStorageSchemaConverter($entity_type_id);
 
       $sandbox = [];
       try {

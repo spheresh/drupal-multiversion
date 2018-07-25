@@ -5,6 +5,7 @@ use Drupal\Core\Database\Query\AlterableInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\multiversion\Plugin\Field\FieldType\RevisionItem;
 use Drupal\workspaces\Entity\Workspace;
 use Drupal\views\Plugin\views\query\QueryPluginBase;
 use Drupal\views\ViewExecutable;
@@ -142,15 +143,15 @@ function multiversion_entity_base_field_info(EntityTypeInterface $entity_type) {
     $published_key = $entity_type->getKey('published') ?: 'status';
 
     // Add the status field.
-//    $fields[$published_key] = BaseFieldDefinition::create('boolean')
-//      ->setName($published_key)
-//      ->setTargetEntityTypeId($entity_type->id())
-//      ->setTargetBundle(NULL)
-//      ->setLabel(t('Publishing status'))
-//      ->setDescription(t('A boolean indicating the published state.'))
-//      ->setRevisionable(TRUE)
-//      ->setTranslatable(TRUE)
-//      ->setDefaultValue(TRUE);
+    $fields[$published_key] = BaseFieldDefinition::create('boolean')
+      ->setName($published_key)
+      ->setTargetEntityTypeId($entity_type->id())
+      ->setTargetBundle(NULL)
+      ->setLabel(t('Publishing status'))
+      ->setDescription(t('A boolean indicating the published state.'))
+      ->setRevisionable(TRUE)
+      ->setTranslatable(TRUE)
+      ->setDefaultValue(TRUE);
 
     $fields['workspace'] = BaseFieldDefinition::create('workspace_reference')
       ->setName('workspace')

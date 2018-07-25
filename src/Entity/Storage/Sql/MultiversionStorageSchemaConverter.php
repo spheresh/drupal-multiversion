@@ -15,13 +15,25 @@ use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\KeyValueStore\KeyValueStoreInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\multiversion\MultiversionManagerInterface;
+use Drupal\workspaces\WorkspaceManagerInterface;
 
-class ContentEntityStorageSchemaConverter extends SqlContentEntityStorageSchemaConverter {
+class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaConverter {
 
   /**
    * @var \Drupal\Core\Entity\EntityFieldManagerInterface
    */
   protected $entityFieldManager;
+
+  /**
+   * @var \Drupal\multiversion\MultiversionManagerInterface
+   */
+  protected $multiversionManager;
+
+  /**
+   * @var \Drupal\workspaces\WorkspaceManagerInterface
+   */
+  protected $workspaceManager;
 
   /**
    * ContentEntityStorageSchemaConverter constructor.
@@ -33,10 +45,14 @@ class ContentEntityStorageSchemaConverter extends SqlContentEntityStorageSchemaC
    * @param \Drupal\Core\KeyValueStore\KeyValueStoreInterface $installed_storage_schema
    * @param \Drupal\Core\Database\Connection $database
    * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
+   * @param \Drupal\multiversion\MultiversionManagerInterface $multiversion_manager
+   * @param \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager
    */
-  public function __construct($entity_type_id, EntityTypeManagerInterface $entity_type_manager, EntityDefinitionUpdateManagerInterface $entity_definition_update_manager, EntityLastInstalledSchemaRepositoryInterface $last_installed_schema_repository, KeyValueStoreInterface $installed_storage_schema, Connection $database, EntityFieldManagerInterface $entity_field_manager) {
+  public function __construct($entity_type_id, EntityTypeManagerInterface $entity_type_manager, EntityDefinitionUpdateManagerInterface $entity_definition_update_manager, EntityLastInstalledSchemaRepositoryInterface $last_installed_schema_repository, KeyValueStoreInterface $installed_storage_schema, Connection $database, EntityFieldManagerInterface $entity_field_manager, MultiversionManagerInterface $multiversion_manager, WorkspaceManagerInterface $workspace_manager) {
     parent::__construct($entity_type_id, $entity_type_manager, $entity_definition_update_manager, $last_installed_schema_repository, $installed_storage_schema, $database);
     $this->entityFieldManager = $entity_field_manager;
+    $this->multiversionManager = $multiversion_manager;
+    $this->workspaceManager = $workspace_manager;
   }
 
   public function convertToMultiversionable(array &$sandbox) {
@@ -120,7 +136,7 @@ class ContentEntityStorageSchemaConverter extends SqlContentEntityStorageSchemaC
         $this->updateFieldStorageDefinitionsToRevisionable($actual_entity_type, $sandbox['original_storage_definitions'], $fields_to_update);
 
         // Install the published status field.
-//        $this->installPublishedStatusField($actual_entity_type);
+        $this->installPublishedStatusField($actual_entity_type);
 
         // Install the fields provided by Multiversion.
         $this->installMultiversionFields($actual_entity_type);
@@ -290,6 +306,19 @@ class ContentEntityStorageSchemaConverter extends SqlContentEntityStorageSchemaC
         // default revision now.
         $entity->set($revision_default_key, TRUE);
 
+        // Set the published status to TRUE.
+        $entity->set($published_key, TRUE);
+
+        // Workspace field value is the current active workspace.
+        $entity->workspace->entity = $this->workspaceManager->getActiveWorkspace();
+
+        // Set the revision token field.
+        $entity->_rev->value = $this->multiversionManager->newRevisionId($entity);
+        $entity->_rev->new_edit = FALSE;
+
+        // The _deleted field should be FALSE.
+        $entity->_deleted->value = FALSE;
+
         // Set the 'revision_translation_affected' flag to TRUE to match the
         // previous API return value: if the field was not defined the value
         // returned was always TRUE.
@@ -364,6 +393,35 @@ class ContentEntityStorageSchemaConverter extends SqlContentEntityStorageSchemaC
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  protected function createTemporaryDefinitions(array &$sandbox, array $fields_to_update) {
+    // Make sure to get the latest entity type definition from code.
+    $this->entityTypeManager->useCaches(FALSE);
+    $actual_entity_type = $this->entityTypeManager->getDefinition($this->entityTypeId);
+
+    $temporary_entity_type = clone $actual_entity_type;
+    $temporary_entity_type->set('base_table', TemporaryTableMapping::getTempTableName($temporary_entity_type->getBaseTable()));
+    $temporary_entity_type->set('revision_table', TemporaryTableMapping::getTempTableName($temporary_entity_type->getRevisionTable()));
+    if ($temporary_entity_type->isTranslatable()) {
+      $temporary_entity_type->set('data_table', TemporaryTableMapping::getTempTableName($temporary_entity_type->getDataTable()));
+      $temporary_entity_type->set('revision_data_table', TemporaryTableMapping::getTempTableName($temporary_entity_type->getRevisionDataTable()));
+    }
+
+    /** @var \Drupal\Core\Entity\Sql\SqlContentEntityStorage $storage */
+    $storage = $this->entityTypeManager->getStorage($this->entityTypeId);
+    $storage->setTemporary(TRUE);
+    $storage->setEntityType($temporary_entity_type);
+
+    $updated_storage_definitions = $this->entityFieldManager->getFieldStorageDefinitions($temporary_entity_type->id());
+    $temporary_table_mapping = $storage->getTableMapping($updated_storage_definitions);
+
+    $sandbox['temporary_entity_type'] = $temporary_entity_type;
+    $sandbox['temporary_table_mapping'] = $temporary_table_mapping;
+    $sandbox['updated_storage_definitions'] = $updated_storage_definitions;
+  }
+
   protected function installMultiversionFields(ContentEntityTypeInterface $entity_type) {
     $fields[] = BaseFieldDefinition::create('workspace_reference')
       ->setName('workspace')
@@ -400,7 +458,7 @@ class ContentEntityStorageSchemaConverter extends SqlContentEntityStorageSchemaC
       ->setReadOnly(TRUE);
 
     foreach ($fields as $field) {
-      $this->entityDefinitionUpdateManager->installFieldStorageDefinition($field->getName(), $entity_type->id(), $field->getProvider(), $field);
+      $this->entityDefinitionUpdateManager->installFieldStorageDefinition($field->getName(), $entity_type->id(), 'multiversion', $field);
     }
   }
 
