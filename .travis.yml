@@ -35,6 +35,7 @@ install:
   - ln -s $TRAVIS_BUILD_DIR ~/www/modules/multiversion
 
 script:
+  - composer run-script drupal-phpunit-upgrade
   - cd ~/www && php ./core/scripts/run-tests.sh --suppress-deprecations --verbose --keep-results --color --concurrency 4 --php `which php` --sqlite /tmp/test.sqlite --url http://localhost:8080 --module multiversion
 
 after_script:
