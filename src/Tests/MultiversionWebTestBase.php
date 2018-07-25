@@ -58,6 +58,7 @@ abstract class MultiversionWebTestBase extends WebTestBase {
   protected $entityDefinitionUpdateManager;
 
   public static $modules = [
+    'workspaces',
     'entity_test',
     'multiversion',
     'node',

@@ -47,6 +47,7 @@ class UninstallTest extends WebTestBase {
    * {@inheritdoc}
    */
   public static $modules = [
+    'workspaces',
     'multiversion',
     'key_value',
     'serialization',

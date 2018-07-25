@@ -16,7 +16,7 @@ class EntityLoadingTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['multiversion', 'key_value', 'serialization', 'user', 'system', 'node'];
+  public static $modules = ['multiversion', 'workspaces', 'key_value', 'serialization', 'user', 'system', 'node'];
 
   /**
    * {@inheritdoc}

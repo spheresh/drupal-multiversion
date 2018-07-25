@@ -18,6 +18,7 @@ class ViewsTest extends ViewsKernelTestBase {
    */
   public static $modules = [
     'multiversion',
+    'workspaces',
     'key_value',
     'serialization',
   ];

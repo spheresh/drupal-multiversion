@@ -15,6 +15,7 @@ class DisableEntityTypesTest extends BrowserTestBase {
   public static $modules = [
     'key_value',
     'multiversion',
+    'workspaces',
     'serialization',
     'node',
     'views',

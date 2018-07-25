@@ -19,7 +19,7 @@ class MultiversionIndexFactoryTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['multiversion', 'key_value', 'serialization', 'user', 'system'];
+  public static $modules = ['multiversion', 'workspaces', 'key_value', 'serialization', 'user', 'system'];
 
   /** @var  \Drupal\multiversion\Entity\Index\MultiversionIndexFactory */
   protected $multiversionIndexFactory;

@@ -15,7 +15,7 @@ use Drupal\Tests\BrowserTestBase;
  */
 class RevisionTreeIndexTest extends BrowserTestBase {
 
-  public static $modules = ['entity_test', 'multiversion'];
+  public static $modules = ['entity_test', 'multiversion', 'workspaces'];
 
   /**
    * @var \Drupal\Core\Entity\EntityTypeManagerInterface

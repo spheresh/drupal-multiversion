@@ -37,6 +37,7 @@ class MenuLinkTest extends WebTestBase {
    * @var array
    */
   public static $modules = [
+    'workspaces',
     'multiversion',
     'menu_link_content',
     'block',

@@ -35,6 +35,7 @@ class ParagraphsTest extends KernelTestBase {
    * {@inheritdoc}
    */
   public static $modules = [
+    'workspaces',
     'system',
     'field',
     'key_value',

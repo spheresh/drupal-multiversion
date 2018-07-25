@@ -16,6 +16,7 @@ class ViewsUiTest extends BrowserTestBase {
   public static $modules = [
     'key_value',
     'multiversion',
+    'workspaces',
     'serialization',
     'views',
     'views_ui',

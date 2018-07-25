@@ -24,7 +24,7 @@ class CommentStatisticsTest extends MultiversionWebTestBase {
    *
    * @var array
    */
-  public static $modules = ['multiversion', 'comment', 'node'];
+  public static $modules = ['workspaces', 'multiversion', 'comment', 'node'];
 
   /**
    * A test node to which comments will be posted.
