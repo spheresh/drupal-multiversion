@@ -404,13 +404,16 @@ trait ContentEntityStorageTrait {
         $tree = $index_factory->get('multiversion.entity_index.rev.tree', $workspace);
         $default_rev = $tree->getDefaultRevision($entity->uuid());
 
-        if ($entity->_rev->value == $default_rev) {
+        if (empty($default_rev) || $entity->_rev->value == $default_rev) {
           $entity->isDefaultRevision(TRUE);
         }
         // @todo: {@link https://www.drupal.org/node/2597538 Needs test.}
         else {
           $entity->isDefaultRevision(FALSE);
         }
+      }
+      else {
+        $entity->isDefaultRevision(TRUE);
       }
     }
 
