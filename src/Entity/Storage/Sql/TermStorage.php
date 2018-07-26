@@ -32,11 +32,11 @@ class TermStorage extends CoreTermStorage implements ContentEntityStorageInterfa
         $this->treeTerms[$vid] = [];
         $active_workspace = \Drupal::service('workspaces.manager')->getActiveWorkspace();
         $query = $this->database->select('taxonomy_term_field_data', 't');
-        $query->join('taxonomy_term_hierarchy', 'h', 'h.tid = t.tid');
+        $query->join('taxonomy_term__parent', 'p', 't.tid = p.entity_id');
+        $query->addExpression('parent_target_id', 'parent');
         $result = $query
           ->addTag('taxonomy_term_access')
           ->fields('t')
-          ->fields('h', ['parent'])
           ->condition('t.vid', $vid)
           ->condition('t.default_langcode', 1)
           ->condition('t._deleted', 0)
@@ -136,9 +136,9 @@ class TermStorage extends CoreTermStorage implements ContentEntityStorageInterfa
    *   Array of terms that need to be removed from hierarchy.
    */
   public function updateParentHierarchy($tids) {
-    $this->database->update('taxonomy_term_hierarchy')
-      ->condition('parent', $tids)
-      ->fields(['parent' => 0])
+    $this->database->update('taxonomy_term__parent')
+      ->condition('parent_target_id', $tids, 'IN')
+      ->fields(['parent_target_id' => 0])
       ->execute();
   }
 
