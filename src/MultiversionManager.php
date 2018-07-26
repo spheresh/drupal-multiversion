@@ -5,6 +5,7 @@ namespace Drupal\multiversion;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -239,7 +240,8 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     }
 
     self::enableIsActive(array_keys($entity_types));
-    $this->entityTypeManager->clearCachedDefinitions();
+    // Temporarily disable the maintenance of the {comment_entity_statistics} table.
+    $this->state->set('comment.maintain_entity_statistics', FALSE);
     $multiversion_settings = \Drupal::configFactory()
       ->getEditable('multiversion.settings');
     $enabled_entity_types = $multiversion_settings->get('enabled_entity_types') ?: [];
@@ -258,10 +260,6 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
           ->set('enabled_entity_types', $enabled_entity_types)
           ->save();
 
-        // Reload the entity type.
-        $this->entityTypeManager->clearCachedDefinitions();
-        $entity_type = $this->entityTypeManager->getStorage($entity_type_id)->getEntityType();
-
         // Make sure that 'id', 'revision' and 'langcode' are primary keys.
         if ($entity_type->id() != 'file' && $entity_type->get('local') != TRUE && !empty($entity_type->getKey('langcode'))) {
           $schema = $this->connection->schema();
@@ -278,11 +276,14 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
           }
         }
       }
-      catch (\Throwable $e) {
+      catch (\Exception $e) {
         $arguments = Error::decodeException($e) + ['%entity_type' => $entity_type_id];
-        throw new \Exception(t('%type: @message in %function (line %line of %file). The problem occurred while processing \'%entity_type\' entity type.', $arguments));
+        $message = t('%type: @message in %function (line %line of %file). The problem occurred while processing \'%entity_type\' entity type.', $arguments);
+        throw new EntityStorageException($message, $e->getCode(), $e);
       }
     }
+    // Enable the the maintenance of entity statistics for comments.
+    $this->state->set('comment.maintain_entity_statistics', TRUE);
     self::enableIsActive(NULL);
 
     return $this;
@@ -395,7 +396,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     // - normalized entity (without revision info field)
     // - attachments (@todo: {@link https://www.drupal.org/node/2597341
     // Address this property.})
-    return ($index + 1) . '-' . md5($this->termToBinary([$deleted, 0, $old_rev, $normalized_entity, []]));
+    return ($index + 1) . '-' . md5($this->termToBinary([$deleted, 0, $old_rev, $entity->id(), []]));
   }
 
   /**

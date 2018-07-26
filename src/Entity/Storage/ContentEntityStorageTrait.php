@@ -7,6 +7,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\file\FileInterface;
 use Drupal\path\Plugin\Field\FieldType\PathFieldItemList;
+use Drupal\pathauto\PathautoState;
 use Drupal\user\UserStorageInterface;
 
 trait ContentEntityStorageTrait {
@@ -184,6 +185,12 @@ trait ContentEntityStorageTrait {
     // Prepare the file directory.
     if ($entity instanceof FileInterface) {
       multiversion_prepare_file_destination($entity->getFileUri());
+    }
+
+    // We prohibit creation of the url alias for entities with a random label,
+    // because this can lead to unnecessary redirects.
+    if ($entity->_rev->is_stub && isset($entity->path->pathauto)) {
+      $entity->path->pathauto = PathautoState::SKIP;
     }
 
     try {

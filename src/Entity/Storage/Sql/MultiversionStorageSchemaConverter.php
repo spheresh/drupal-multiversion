@@ -2,6 +2,7 @@
 
 namespace Drupal\multiversion\Entity\Storage\Sql;
 
+use Drupal\Component\Utility\Random;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
@@ -36,6 +37,11 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
   protected $workspaceManager;
 
   /**
+   * @var \Drupal\Component\Utility\Random
+   */
+  protected $random;
+
+  /**
    * ContentEntityStorageSchemaConverter constructor.
    *
    * @param $entity_type_id
@@ -53,6 +59,7 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
     $this->entityFieldManager = $entity_field_manager;
     $this->multiversionManager = $multiversion_manager;
     $this->workspaceManager = $workspace_manager;
+    $this->random = new Random();
   }
 
   public function convertToMultiversionable(array &$sandbox) {
@@ -313,7 +320,7 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
         $entity->workspace->entity = $this->workspaceManager->getActiveWorkspace();
 
         // Set the revision token field.
-        $entity->_rev->value = $this->multiversionManager->newRevisionId($entity);
+        $entity->_rev->value = '1-' . md5($entity->id() . $entity->uuid() . $this->random->string(10, TRUE));
         $entity->_rev->new_edit = FALSE;
 
         // The _deleted field should be FALSE.
@@ -332,6 +339,13 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
 
         // Finally, save the entity in the temporary storage.
         $storage->save($entity);
+
+        // Delete the entry for the old entry in the menu_tree table.
+        if ($original_entity_type->id() == 'menu_link_content' && $this->database->schema()->tableExists('menu_tree')) {
+          $this->database->delete('menu_tree')
+            ->condition('id', 'menu_link_content:' . $entity->uuid())
+            ->execute();
+        }
       }
       catch (\Exception $e) {
         // In case of an error during the save process, we need to roll back the
