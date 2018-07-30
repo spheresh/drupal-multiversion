@@ -329,10 +329,22 @@ function multiversion_views_query_alter(ViewExecutable $view, QueryPluginBase $q
     'poll_list',
   ];
   if (in_array($view->id(), $views_ids)) {
+    /** @var \Drupal\multiversion\MultiversionManagerInterface $manager */
+    $manager = \Drupal::service('multiversion.manager');
+    $entity_type = $view->getBaseEntityType();
+    if (!$manager->isEnabledEntityType($entity_type)) {
+      return;
+    }
+
     $base_table = $view->storage->get('base_table');
     $view->query->where[1]['conditions'][] = [
       'field' => $base_table . '._deleted',
       'value' => FALSE,
+      'operator' => '=',
+    ];
+    $view->query->where[1]['conditions'][] = [
+      'field' => $base_table . '.workspace',
+      'value' => \Drupal::service('workspaces.manager')->getActiveWorkspace()->id(),
       'operator' => '=',
     ];
   }
@@ -386,13 +398,6 @@ function multiversion_element_pre_render($element) {
     );
   }
   return $element;
-}
-
-/**
- * Callback for getting the active workspace ID.
- */
-function multiversion_get_active_workspace_id() {
-  return \Drupal::service('multiversion.manager')->getActiveWorkspace()->id();
 }
 
 /**
