@@ -6,6 +6,7 @@ use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityPublishedTrait;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\file\Entity\File as CoreFile;
+use Drupal\user\StatusItem;
 
 class File extends CoreFile implements EntityPublishedInterface {
 

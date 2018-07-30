@@ -63,7 +63,6 @@ function multiversion_entity_type_alter(array &$entity_types) {
           break;
 
         case 'taxonomy_term':
-//          $entity_type->setClass('Drupal\multiversion\Entity\Term');
           $entity_type->setHandlerClass('storage', "$namespace\\TermStorage");
           break;
 
