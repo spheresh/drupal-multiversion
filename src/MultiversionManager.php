@@ -240,6 +240,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     }
 
     self::enableIsActive(array_keys($entity_types));
+    $this->entityTypeManager->clearCachedDefinitions();
     // Temporarily disable the maintenance of the {comment_entity_statistics} table.
     $this->state->set('comment.maintain_entity_statistics', FALSE);
     $multiversion_settings = \Drupal::configFactory()

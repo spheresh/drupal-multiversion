@@ -317,14 +317,16 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
         $entity->set($published_key, TRUE);
 
         // Workspace field value is the current active workspace.
-        $entity->workspace->entity = $this->workspaceManager->getActiveWorkspace();
+        $active_workspace = $this->workspaceManager->getActiveWorkspace();
+        $entity->set('workspace', ['entity' => $active_workspace]);
 
         // Set the revision token field.
-        $entity->_rev->value = '1-' . md5($entity->id() . $entity->uuid() . $this->random->string(10, TRUE));
+        $rev_token = '1-' . md5($entity->id() . $entity->uuid() . $this->random->string(10, TRUE));
+        $entity->set('_rev', $rev_token);
         $entity->_rev->new_edit = FALSE;
 
         // The _deleted field should be FALSE.
-        $entity->_deleted->value = FALSE;
+        $entity->set('_deleted', FALSE);
 
         // Set the 'revision_translation_affected' flag to TRUE to match the
         // previous API return value: if the field was not defined the value
