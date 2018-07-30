@@ -120,9 +120,9 @@ function multiversion_entity_type_alter(array &$entity_types) {
     }
   }
 
-//  if (isset($entity_types['block_content']) && $manager->allowToAlter($entity_types['block_content'])) {
-//    $entity_types['block']->setHandlerClass('storage', 'Drupal\multiversion\Entity\Storage\Sql\BlockStorage');
-//  }
+  if (isset($entity_types['block_content']) && $manager->allowToAlter($entity_types['block_content'])) {
+    $entity_types['block']->setHandlerClass('storage', 'Drupal\multiversion\Entity\Storage\Sql\BlockStorage');
+  }
 }
 
 /**

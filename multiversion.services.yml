@@ -52,6 +52,12 @@ services:
   multiversion.conflict_tracker:
     class: Drupal\multiversion\Conflict\ConflictTracker
     arguments: ['@keyvalue', '@workspaces.manager']
+  multiversion.plugin.manager.block:
+    decorates: plugin.manager.block
+    class: Drupal\multiversion\Block\BlockManager
+    decoration_priority: 50
+    parent: default_plugin_manager
+    arguments: ['@logger.channel.default', '@database', '@workspaces.manager']
   cache_context.workspace:
     class: Drupal\multiversion\WorkspaceCacheContext
     arguments: ['@workspaces.manager']
