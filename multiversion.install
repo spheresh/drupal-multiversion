@@ -1,6 +1,38 @@
 <?php
 
 /**
+ * Implements hook_requirements().
+ */
+function multiversion_requirements($phase) {
+  $requirements = [];
+  if ($phase === 'runtime') {
+    $enabled_entity_types = \Drupal::configFactory()
+      ->getEditable('multiversion.settings')
+      ->get('enabled_entity_types', []);
+    if (!empty($enabled_entity_types)) {
+      $value = implode(', ', $enabled_entity_types);
+      $requirements['converted_entity_types'] = [
+        'title' => t('Multiversion'),
+        'value' => t('Multiversionable entity types: %list', ['%list' => $value]),
+        'description' => t('Entity types that have been converted to multiversionable.'),
+        'severity' => REQUIREMENT_INFO,
+      ];
+    }
+    $conversion_failed_for = \Drupal::state()->get('multiversion.conversion_failed_for', []);
+    if (!empty($conversion_failed_for)) {
+      $value = implode(', ', $conversion_failed_for);
+      $requirements['converted_entity_types'] = [
+        'title' => t('Multiversion'),
+        'value' => t('Failed entity types: %list', ['%list' => $value]),
+        'description' => t('Conversion to multiversionable failed for the entities listed here.'),
+        'severity' => REQUIREMENT_WARNING,
+      ];
+    }
+  }
+  return $requirements;
+}
+
+/**
  * Implements hook_install().
  */
 function multiversion_install() {

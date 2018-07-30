@@ -278,9 +278,11 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
         }
       }
       catch (\Exception $e) {
+        $conversion_failed_for = $this->state->get('multiversion.conversion_failed_for', []);
         $arguments = Error::decodeException($e) + ['%entity_type' => $entity_type_id];
-        $message = t('%type: @message in %function (line %line of %file). The problem occurred while processing \'%entity_type\' entity type.', $arguments);
-        throw new EntityStorageException($message, $e->getCode(), $e);
+        \Drupal::logger('multiversion')->warning('Entity type \'%entity_type\' failed to be converted to muultiversionable. More info: %type: @message in %function (line %line of %file).', $arguments);
+        $conversion_failed_for[] = $entity_type_id;
+        $this->state->set('multiversion.conversion_failed_for', $conversion_failed_for);
       }
     }
     // Enable the the maintenance of entity statistics for comments.
