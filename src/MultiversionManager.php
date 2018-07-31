@@ -246,6 +246,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     $multiversion_settings = \Drupal::configFactory()
       ->getEditable('multiversion.settings');
     $enabled_entity_types = $multiversion_settings->get('enabled_entity_types') ?: [];
+    $operations = [];
     foreach ($entity_types as $entity_type_id => $entity_type) {
       if (in_array($entity_type_id, $enabled_entity_types)) {
         continue;
@@ -253,24 +254,38 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       $operations[] = [
         [
           get_class($this),
-          'convertToMultiversionable'],
+          'convertToMultiversionable',
+        ],
         [
           $entity_type,
           $this->connection,
           $this->state,
-          $multiversion_settings
-        ]
+          $multiversion_settings,
+        ],
+      ];
+      $operations[] = [
+        [
+          get_class($this),
+          'fixPrimaryKeys',
+        ],
+        [
+          $entity_type,
+          $this->connection,
+        ],
       ];
     }
 
-    $batch = [
-      'operations' => $operations,
-    ];
-    batch_set($batch);
-    $batch =& batch_get();
-    $batch['progressive'] = FALSE;
-    batch_process();
-
+    // Create and process the batch.
+    if (!empty($operations)) {
+      $batch = [
+        'operations' => $operations,
+        'finished' => [get_class($this), 'conversionFinished']
+      ];
+      batch_set($batch);
+      $batch =& batch_get();
+      $batch['progressive'] = FALSE;
+      batch_process();
+    }
 
     // Enable the the maintenance of entity statistics for comments.
     $this->state->set('comment.maintain_entity_statistics', TRUE);
@@ -293,7 +308,9 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
         ->set('enabled_entity_types', $enabled_entity_types)
         ->save();
 
-      static::fixPrimaryKeys($entity_type, $connection);
+      // Apply any other entity updates provided by Multiversion,
+      // e.g.: make UUID field not unique.
+      \Drupal::entityDefinitionUpdateManager()->applyUpdates();
     }
     catch (\Exception $e) {
       $conversion_failed_for = $state->get('multiversion.conversion_failed_for', []);
