@@ -258,6 +258,17 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
           $multiversion_settings,
         ],
       ];
+      $operations[] = [
+        [
+          get_class($this),
+          'fixPrimaryKeys',
+        ],
+        [
+          $entity_type_id,
+          $this->entityTypeManager,
+          $this->connection,
+        ],
+      ];
     }
 
     // Create and process the batch.
@@ -291,8 +302,6 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       $multiversion_settings
         ->set('enabled_entity_types', $enabled_entity_types)
         ->save();
-
-      static::fixPrimaryKeys($entity_type_id, $entity_type_manager, $connection);
 
       // Apply any other entity updates provided by Multiversion,
       // e.g.: make UUID field not unique.
