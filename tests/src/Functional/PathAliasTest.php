@@ -41,12 +41,7 @@ class PathAliasTest extends BrowserTestBase {
     /** @var \Drupal\Core\Path\AliasStorageInterface $alias_storage */
     $alias_storage = \Drupal::service('path.alias_storage');
 
-    // Create a live (default) and stage workspace.
-    $live = Workspace::create([
-      'id' => 'live',
-      'label' => 'Live',
-    ]);
-    $live->save();
+    // Create a stage workspace.
     $stage = Workspace::create([
       'id' => 'stage',
       'label' => 'Stage',
