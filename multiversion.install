@@ -24,7 +24,7 @@ function multiversion_requirements($phase) {
       $requirements['converted_entity_types'] = [
         'title' => t('Multiversion'),
         'value' => t('Failed entity types: %list', ['%list' => $value]),
-        'description' => t('Conversion to multiversionable failed for the entities listed here.'),
+        'description' => t('Conversion to multiversionable failed for the entity types listed here.'),
         'severity' => REQUIREMENT_WARNING,
       ];
     }

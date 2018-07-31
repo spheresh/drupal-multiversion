@@ -250,46 +250,58 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       if (in_array($entity_type_id, $enabled_entity_types)) {
         continue;
       }
-      $schema_converter = \Drupal::service('multiversion.schema_converter_factory')
-        ->getStorageSchemaConverter($entity_type_id);
-
-      $sandbox = [];
-      try {
-        $schema_converter->convertToMultiversionable($sandbox);
-        $enabled_entity_types[] = $entity_type_id;
-        $multiversion_settings
-          ->set('enabled_entity_types', $enabled_entity_types)
-          ->save();
-
-        // Make sure that 'id', 'revision' and 'langcode' are primary keys.
-        if ($entity_type->id() != 'file' && $entity_type->get('local') != TRUE && !empty($entity_type->getKey('langcode'))) {
-          $schema = $this->connection->schema();
-          // Get the tables name used for base table and revision table.
-          $table_base = ($entity_type->isTranslatable()) ? $entity_type->getDataTable() : $entity_type->getBaseTable();
-          $table_revision = ($entity_type->isTranslatable()) ? $entity_type->getRevisionDataTable() : $entity_type->getRevisionTable();
-          if ($table_base) {
-            $schema->dropPrimaryKey($table_base);
-            $schema->addPrimaryKey($table_base, [$entity_type->getKey('id'), 'langcode']);
-          }
-          if ($table_revision) {
-            $schema->dropPrimaryKey($table_revision);
-            $schema->addPrimaryKey($table_revision, [$entity_type->getKey('revision'), 'langcode']);
-          }
-        }
-      }
-      catch (\Exception $e) {
-        $conversion_failed_for = $this->state->get('multiversion.conversion_failed_for', []);
-        $arguments = Error::decodeException($e) + ['%entity_type' => $entity_type_id];
-        \Drupal::logger('multiversion')->warning('Entity type \'%entity_type\' failed to be converted to muultiversionable. More info: %type: @message in %function (line %line of %file).', $arguments);
-        $conversion_failed_for[] = $entity_type_id;
-        $this->state->set('multiversion.conversion_failed_for', $conversion_failed_for);
-      }
+      $operations[] = [
+        [
+          get_class($this),
+          'convertToMultiversionable'],
+        [
+          $entity_type,
+          $this->connection,
+          $this->state,
+          $multiversion_settings
+        ]
+      ];
     }
+
+    $batch = [
+      'operations' => $operations,
+    ];
+    batch_set($batch);
+    $batch =& batch_get();
+    $batch['progressive'] = FALSE;
+    batch_process();
+
+
     // Enable the the maintenance of entity statistics for comments.
     $this->state->set('comment.maintain_entity_statistics', TRUE);
     self::enableIsActive(NULL);
 
     return $this;
+  }
+
+  public static function convertToMultiversionable(ContentEntityTypeInterface $entity_type, $connection, $state, $multiversion_settings) {
+    $enabled_entity_types = $multiversion_settings->get('enabled_entity_types') ?: [];
+    $entity_type_id = $entity_type->id();
+    $schema_converter = \Drupal::service('multiversion.schema_converter_factory')
+      ->getStorageSchemaConverter($entity_type_id);
+
+    $sandbox = [];
+    try {
+      $schema_converter->convertToMultiversionable($sandbox);
+      $enabled_entity_types[] = $entity_type_id;
+      $multiversion_settings
+        ->set('enabled_entity_types', $enabled_entity_types)
+        ->save();
+
+      static::fixPrimaryKeys($entity_type, $connection);
+    }
+    catch (\Exception $e) {
+      $conversion_failed_for = $state->get('multiversion.conversion_failed_for', []);
+      $arguments = Error::decodeException($e) + ['%entity_type' => $entity_type_id];
+      \Drupal::logger('multiversion')->warning('Entity type \'%entity_type\' failed to be converted to muultiversionable. More info: %type: @message in %function (line %line of %file).', $arguments);
+      $conversion_failed_for[] = $entity_type_id;
+      $state->set('multiversion.conversion_failed_for', $conversion_failed_for);
+    }
   }
 
   /**
@@ -420,6 +432,24 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     // @todo: {@link https://www.drupal.org/node/2597478 Switch to BERT
     // serialization format instead of JSON.}
     return $this->serializer->serialize($term, 'json');
+  }
+
+  static function fixPrimaryKeys(ContentEntityTypeInterface $entity_type, $connection) {
+    // Make sure that 'id', 'revision' and 'langcode' are primary keys.
+    if ($entity_type->id() != 'file' && $entity_type->get('local') != TRUE && !empty($entity_type->getKey('langcode'))) {
+      $schema = $connection->schema();
+      // Get the tables name used for base table and revision table.
+      $table_base = ($entity_type->isTranslatable()) ? $entity_type->getDataTable() : $entity_type->getBaseTable();
+      $table_revision = ($entity_type->isTranslatable()) ? $entity_type->getRevisionDataTable() : $entity_type->getRevisionTable();
+      if ($table_base) {
+        $schema->dropPrimaryKey($table_base);
+        $schema->addPrimaryKey($table_base, [$entity_type->getKey('id'), 'langcode']);
+      }
+      if ($table_revision) {
+        $schema->dropPrimaryKey($table_revision);
+        $schema->addPrimaryKey($table_revision, [$entity_type->getKey('revision'), 'langcode']);
+      }
+    }
   }
 
 }
