@@ -43,12 +43,12 @@ class PathAliasTest extends BrowserTestBase {
 
     // Create a live (default) and stage workspace.
     $live = Workspace::create([
-      'machine_name' => 'live',
+      'id' => 'live',
       'label' => 'Live',
     ]);
     $live->save();
     $stage = Workspace::create([
-      'machine_name' => 'stage',
+      'id' => 'stage',
       'label' => 'Stage',
     ]);
     $stage->save();

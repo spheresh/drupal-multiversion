@@ -63,7 +63,7 @@ class ParagraphsTest extends KernelTestBase {
     $multiversion_manager = $this->container->get('multiversion.manager');
     $multiversion_manager->enableEntityTypes();
     $workspace = Workspace::create([
-      'machine_name' => 'live',
+      'id' => 'live',
       'label' => 'Live',
     ]);
     $workspace->save();

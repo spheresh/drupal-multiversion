@@ -328,7 +328,7 @@ class EntityStorageTest extends MultiversionWebTestBase {
 
     // Create a new workspace and switch to it.
     $workspace = Workspace::create([
-      'machine_name' => $this->randomMachineName(),
+      'id' => $this->randomMachineName(),
       'label' => $this->randomMachineName(),
     ]);
     $workspace->save();
@@ -369,12 +369,12 @@ class EntityStorageTest extends MultiversionWebTestBase {
     // Test saving the same entity in two workspaces. This is a simplified
     // simulation of replication.
     $source = Workspace::create([
-      'machine_name' => $this->randomMachineName(),
+      'id' => $this->randomMachineName(),
       'label' => $this->randomMachineName(),
     ]);
     $source->save();
     $target = Workspace::create([
-      'machine_name' => $this->randomMachineName(),
+      'id' => $this->randomMachineName(),
       'label' => $this->randomMachineName(),
     ]);
     $target->save();

@@ -38,12 +38,12 @@ class EntityLoadingTest extends KernelTestBase {
    */
   public function testLoadingEntities() {
     $un_workspace = Workspace::create([
-      'machine_name' => 'un_workspace',
+      'id' => 'un_workspace',
       'label' => 'Un Workspace',
     ]);
     $un_workspace->save();
     $dau_workspace = Workspace::create([
-      'machine_name' => 'dau_workspace',
+      'id' => 'dau_workspace',
       'label' => 'Dau Workspace',
     ]);
     $dau_workspace->save();
