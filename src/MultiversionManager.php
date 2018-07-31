@@ -251,20 +251,11 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
           'convertToMultiversionable',
         ],
         [
-          $entity_type,
+          $entity_type_id,
+          $this->entityTypeManager,
           $this->connection,
           $this->state,
           $multiversion_settings,
-        ],
-      ];
-      $operations[] = [
-        [
-          get_class($this),
-          'fixPrimaryKeys',
-        ],
-        [
-          $entity_type,
-          $this->connection,
         ],
       ];
     }
@@ -288,9 +279,8 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     return $this;
   }
 
-  public static function convertToMultiversionable(ContentEntityTypeInterface $entity_type, $connection, $state, $multiversion_settings) {
+  public static function convertToMultiversionable($entity_type_id, EntityTypeManagerInterface $entity_type_manager, Connection $connection, StateInterface $state, $multiversion_settings) {
     $enabled_entity_types = $multiversion_settings->get('enabled_entity_types') ?: [];
-    $entity_type_id = $entity_type->id();
     $schema_converter = \Drupal::service('multiversion.schema_converter_factory')
       ->getStorageSchemaConverter($entity_type_id);
 
@@ -301,6 +291,8 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       $multiversion_settings
         ->set('enabled_entity_types', $enabled_entity_types)
         ->save();
+
+      static::fixPrimaryKeys($entity_type_id, $entity_type_manager, $connection);
 
       // Apply any other entity updates provided by Multiversion,
       // e.g.: make UUID field not unique.
@@ -445,9 +437,10 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     return $this->serializer->serialize($term, 'json');
   }
 
-  static function fixPrimaryKeys(ContentEntityTypeInterface $entity_type, $connection) {
+  static function fixPrimaryKeys($entity_type_id, EntityTypeManagerInterface $entity_type_manager, Connection $connection) {
+    $entity_type = $entity_type_manager->getStorage($entity_type_id)->getEntityType();
     // Make sure that 'id', 'revision' and 'langcode' are primary keys.
-    if ($entity_type->id() != 'file' && $entity_type->get('local') != TRUE && !empty($entity_type->getKey('langcode'))) {
+    if ($entity_type_id != 'file' && $entity_type->get('local') != TRUE && !empty($entity_type->getKey('langcode'))) {
       $schema = $connection->schema();
       // Get the tables name used for base table and revision table.
       $table_base = ($entity_type->isTranslatable()) ? $entity_type->getDataTable() : $entity_type->getBaseTable();
