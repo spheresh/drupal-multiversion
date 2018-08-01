@@ -253,7 +253,6 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
         [
           $entity_type_id,
           $this->entityTypeManager,
-          $this->connection,
           $this->state,
           $multiversion_settings,
         ],
@@ -290,7 +289,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     return $this;
   }
 
-  public static function convertToMultiversionable($entity_type_id, EntityTypeManagerInterface $entity_type_manager, Connection $connection, StateInterface $state, $multiversion_settings) {
+  public static function convertToMultiversionable($entity_type_id, EntityTypeManagerInterface $entity_type_manager, StateInterface $state, $multiversion_settings) {
     $enabled_entity_types = $multiversion_settings->get('enabled_entity_types') ?: [];
     $schema_converter = \Drupal::service('multiversion.schema_converter_factory')
       ->getStorageSchemaConverter($entity_type_id);
@@ -302,17 +301,13 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       $multiversion_settings
         ->set('enabled_entity_types', $enabled_entity_types)
         ->save();
-
-      // Apply any other entity updates provided by Multiversion,
-      // e.g.: make UUID field not unique.
-      \Drupal::entityDefinitionUpdateManager()->applyUpdates();
     }
     catch (\Exception $e) {
-      $conversion_failed_for = $state->get('multiversion.conversion_failed_for', []);
+      $failed_entity_types = $state->get('multiversion.failed_entity_types', []);
       $arguments = Error::decodeException($e) + ['%entity_type' => $entity_type_id];
-      \Drupal::logger('multiversion')->warning('Entity type \'%entity_type\' failed to be converted to muultiversionable. More info: %type: @message in %function (line %line of %file).', $arguments);
-      $conversion_failed_for[] = $entity_type_id;
-      $state->set('multiversion.conversion_failed_for', $conversion_failed_for);
+      \Drupal::logger('multiversion')->warning('Entity type \'%entity_type\' failed to be converted to multiversionable. More info: %type: @message in %function (line %line of %file).', $arguments);
+      $failed_entity_types[] = $entity_type_id;
+      $state->set('multiversion.failed_entity_types', $failed_entity_types);
     }
   }
 

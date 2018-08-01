@@ -147,6 +147,15 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
 
         // Install the fields provided by Multiversion.
         $this->installMultiversionFields($actual_entity_type);
+
+        // Reload the entity type and update it again. Multiversion makes
+        // changes for other fields, like UUID, those updates needs to be
+        // applied.
+        $this->entityTypeManager->clearCachedDefinitions();
+        $field_definitions = $this->entityFieldManager->getFieldStorageDefinitions($this->entityTypeId);
+        foreach ($field_definitions as $field_definition) {
+          $this->entityDefinitionUpdateManager->updateFieldStorageDefinition($field_definition);
+        }
       }
       catch (\Exception $e) {
         // Something went wrong, bring back the original tables.
