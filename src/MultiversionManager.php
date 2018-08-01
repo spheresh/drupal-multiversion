@@ -454,13 +454,21 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       // Get the tables name used for base table and revision table.
       $table_base = ($entity_type->isTranslatable()) ? $entity_type->getDataTable() : $entity_type->getBaseTable();
       $table_revision = ($entity_type->isTranslatable()) ? $entity_type->getRevisionDataTable() : $entity_type->getRevisionTable();
-      if ($table_base) {
-        $schema->dropPrimaryKey($table_base);
-        $schema->addPrimaryKey($table_base, [$entity_type->getKey('id'), 'langcode']);
+      if ($table_base && $schema->tableExists($table_base)) {
+        try {
+          $schema->addPrimaryKey($table_base, [$entity_type->getKey('id'), 'langcode']);
+        }
+        catch (\Exception $e) {
+          // Do nothing, the index already exists.
+        }
       }
-      if ($table_revision) {
-        $schema->dropPrimaryKey($table_revision);
-        $schema->addPrimaryKey($table_revision, [$entity_type->getKey('revision'), 'langcode']);
+      if ($table_revision && $schema->tableExists($table_revision)) {
+        try {
+          $schema->addPrimaryKey($table_revision, [$entity_type->getKey('revision'), 'langcode']);
+        }
+        catch (\Exception $e) {
+          // Do nothing, the index already exists.
+        }
       }
     }
   }
