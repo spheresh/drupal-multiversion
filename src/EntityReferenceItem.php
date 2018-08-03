@@ -2,7 +2,7 @@
 
 namespace Drupal\multiversion;
 
-use \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem as CoreEntityReferenceItem;
+use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem as CoreEntityReferenceItem;
 
 /**
  * Alternative entity reference base field item type class.

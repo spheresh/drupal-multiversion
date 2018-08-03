@@ -2,7 +2,7 @@
 
 namespace Drupal\multiversion;
 
-use \Drupal\file\Plugin\Field\FieldType\FileItem as CoreFileItem;
+use Drupal\file\Plugin\Field\FieldType\FileItem as CoreFileItem;
 
 /**
  * Alternative file field item type class.

@@ -2,7 +2,7 @@
 
 namespace Drupal\multiversion;
 
-use \Drupal\image\Plugin\Field\FieldType\ImageItem as CoreImageItem;
+use Drupal\image\Plugin\Field\FieldType\ImageItem as CoreImageItem;
 
 /**
  * Alternative image field item type class.
