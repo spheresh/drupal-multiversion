@@ -2,11 +2,12 @@
 
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Database\Query\AlterableInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\multiversion\Plugin\Field\FieldType\RevisionItem;
 use Drupal\workspaces\Entity\Workspace;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Utility\Error;
 use Drupal\views\Plugin\views\query\QueryPluginBase;
 use Drupal\views\ViewExecutable;
 
@@ -231,6 +232,54 @@ function multiversion_entity_base_field_info_alter(&$fields, EntityTypeInterface
     foreach ($fields as $key => $field) {
       if (!in_array($key, $exclude_fields)) {
         $field->setRevisionable(TRUE);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_update().
+ */
+function multiversion_paragraph_update(EntityInterface $entity) {
+  // Update the target_revision_id field value for the parent entity if it
+  // changed (for example when saving a revision after a stub revision during
+  // replication).
+  $parent = $entity->getParentEntity();
+  $entity_revision_parent_field_name = $entity->getEntityType()->get('entity_revision_parent_field_name_field');
+  if ($parent instanceof ContentEntityInterface
+    && !empty($entity->workspace)
+    && $entity_revision_parent_field_name
+    && !empty($entity->{$entity_revision_parent_field_name}->value)) {
+    $parent_field_name = $entity->{$entity_revision_parent_field_name}->value;
+    $storage = \Drupal::entityTypeManager()->getStorage($parent->getEntityTypeId());
+    $storage->resetCache([$parent->id()]);
+    // Load the most recent version of the parent.
+    $parent = $storage->load($parent->id());
+    if ($parent && !empty($parent->{$parent_field_name})) {
+      $save_parent = FALSE;
+      $values = $parent->{$parent_field_name}->getValue();
+      $updated_values = [];
+      foreach ($values as $delta => $value) {
+        $updated_values[$delta] = $value;
+        if ($value['target_id'] == $entity->id() && $value['target_revision_id'] != $entity->getRevisionId()) {
+          $updated_values[$delta]['target_revision_id'] = $entity->getRevisionId();
+          $save_parent = TRUE;
+        }
+      }
+      if ($save_parent) {
+        $parent->{$parent_field_name}->setValue($updated_values);
+        try {
+          $storage->saveWithoutForcingNewRevision($parent);
+          $storage->resetCache([$parent->id()]);
+        }
+        catch (\Exception $e) {
+          $details = t('Failed to save parent entity with UUID: %uuid_parent for paragraph entity with UUID: %uuid_paragraph.',
+            [
+              '%uuid_parent' => $parent->uuid(),
+              '%uuid_paragraph' => $entity->uuid(),
+            ]);
+          \Drupal::logger('Multiversion')->error('%type: @message in %function (line %line of %file). ' . $details, Error::decodeException($e));
+        }
       }
     }
   }
