@@ -193,6 +193,49 @@ trait ContentEntityStorageTrait {
       $entity->path->pathauto = PathautoState::SKIP;
     }
 
+    foreach ($entity->getFields() as $name => $field) {
+      if (
+        $field instanceof EntityReferenceFieldItemListInterface &&
+        !($field instanceof EntityReferenceRevisionsFieldItemList)
+      ) {
+        $value = [];
+
+        // For the entity reference field with stub entity referenced we check
+        // if the entity with corresponding UUID and real values
+        // have been created in the database already and use it instead.
+        foreach ($field->getValue() as $delta => $item) {
+          // At first we take value we receive as it is.
+          $value[$delta] = $item;
+
+          // Only stub entities will satisfy this condition.
+          if (
+            $item['target_id'] === NULL &&
+            isset($item['entity']) &&
+            $item['entity']->_rev->is_stub
+          ) {
+            // Lookup for entities with corresponding UUID.
+            $target_entities = $this->loadByProperties(['uuid' => $item["entity"]->uuid()]);
+
+            // Replace stub with existing entity if we found such.
+            if (!empty($target_entities)) {
+              // Here we take first assuming there should be no entities
+              // with duplicated UUIDs in one workspace.
+              $target_entity = reset($target_entities);
+              $item['target_id'] = $target_entity->id();
+              unset($item['entity']);
+              $value[$delta] = $item;
+            }
+          }
+        }
+
+        // @todo This conditions is not obligatory but will prevent
+        // unnecessary action when field value already empty.
+        if (!empty($value)) {
+          $field->setValue($value, FALSE);
+        }
+      }
+    }
+
     try {
       $save_result = parent::save($entity);
 
