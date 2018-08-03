@@ -71,6 +71,12 @@ class RedirectRepository extends ContribRedirectRepository {
 
       $redirect = $this->load($rid);
 
+      // Ensure redirect entity is properly loaded.
+      // NULL value is returned when redirect has '_deleted' flag TRUE.
+      if (empty($redirect) || !($redirect instanceof Redirect)) {
+        return NULL;
+      }
+
       // Find chained redirects.
       if ($recursive = $this->findByRedirect($redirect, $language)) {
         // Reset found redirects.
