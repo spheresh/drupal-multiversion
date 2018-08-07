@@ -7,6 +7,7 @@ use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Site\Settings;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
@@ -241,22 +242,35 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       ->getEditable('multiversion.settings');
     $enabled_entity_types = $multiversion_settings->get('enabled_entity_types') ?: [];
     $operations = [];
+    $sandbox = [];
+    // Define the step size.
+    $sandbox['step_size'] = Settings::get('entity_conversion_batch_size', 50);
     foreach ($entity_types as $entity_type_id => $entity_type) {
       if (in_array($entity_type_id, $enabled_entity_types)) {
         continue;
       }
-      $operations[] = [
-        [
-          get_class($this),
-          'convertToMultiversionable',
-        ],
-        [
-          $entity_type_id,
-          $this->entityTypeManager,
-          $this->state,
-          $multiversion_settings,
-        ],
-      ];
+      $base_table = $entity_type->getBaseTable();;
+      $sandbox['base_tables'][$entity_type_id] = $base_table;
+      $entities_count = $this->connection->select($base_table)
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+      $i = 0;
+      while ($i <= $entities_count) {
+        $operations[] = [
+          [
+            get_class($this),
+            'convertToMultiversionable',
+          ],
+          [
+            $entity_type_id,
+            $this->state,
+            $multiversion_settings,
+            &$sandbox
+          ],
+        ];
+        $i += $sandbox['step_size'];
+      }
       $operations[] = [
         [
           get_class($this),
@@ -289,18 +303,20 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     return $this;
   }
 
-  public static function convertToMultiversionable($entity_type_id, EntityTypeManagerInterface $entity_type_manager, StateInterface $state, $multiversion_settings) {
+  public static function convertToMultiversionable($entity_type_id, StateInterface $state, $multiversion_settings, &$sandbox) {
     $enabled_entity_types = $multiversion_settings->get('enabled_entity_types') ?: [];
     $schema_converter = \Drupal::service('multiversion.schema_converter_factory')
       ->getStorageSchemaConverter($entity_type_id);
 
-    $sandbox = [];
     try {
       $schema_converter->convertToMultiversionable($sandbox);
-      $enabled_entity_types[] = $entity_type_id;
-      $multiversion_settings
-        ->set('enabled_entity_types', $enabled_entity_types)
-        ->save();
+      if (isset($sandbox[$entity_type_id]['finished'])
+        && $sandbox[$entity_type_id]['finished'] == 1) {
+        $enabled_entity_types[] = $entity_type_id;
+        $multiversion_settings  
+          ->set('enabled_entity_types', $enabled_entity_types)
+          ->save();
+      }
     }
     catch (\Exception $e) {
       $failed_entity_types = $state->get('multiversion.failed_entity_types', []);
