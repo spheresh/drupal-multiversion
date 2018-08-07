@@ -14,7 +14,6 @@ use Drupal\Core\Entity\Sql\SqlContentEntityStorageSchemaConverter;
 use Drupal\Core\Entity\Sql\TemporaryTableMapping;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\KeyValueStore\KeyValueStoreInterface;
-use Drupal\Core\Site\Settings;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\multiversion\MultiversionManagerInterface;
 use Drupal\workspaces\WorkspaceManagerInterface;
@@ -63,8 +62,19 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
   }
 
   public function convertToMultiversionable(array &$sandbox) {
-    // If 'progress' is not set, then this will be the first run of the batch.
-    if (!isset($sandbox['progress'])) {
+    // Return if the migration for current entity type has been finished.
+    if (isset($sandbox[$this->entityTypeId]['finished'])
+      && $sandbox[$this->entityTypeId]['finished'] == 1) {
+      return;
+    }
+
+    // Initialize entity types conversion.
+    $this->initializeConversion($sandbox);
+
+    // If the condition is TRUE, then this will be the first run of the
+    // operation.
+    if (!isset($sandbox[$this->entityTypeId]['finished'])
+      || $sandbox[$this->entityTypeId]['finished'] < 1) {
       // Store the original entity type and field definitions in the $sandbox
       // array so we can use them later in the update process.
       $this->collectOriginalDefinitions($sandbox);
@@ -86,7 +96,8 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
 
     // If the data copying has finished successfully, we can drop the temporary
     // tables and call the appropriate update mechanisms.
-    if ($sandbox['#finished'] == 1) {
+    if ($sandbox[$this->entityTypeId]['finished'] == 1) {
+      $sandbox['current_id'] = 0;
       $this->entityTypeManager->useCaches(FALSE);
       $actual_entity_type = $this->entityTypeManager->getDefinition($this->entityTypeId);
 
@@ -185,6 +196,26 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
   }
 
   /**
+   * @param array $sandbox
+   */
+  protected function initializeConversion(array &$sandbox) {
+    // If 'progress' is not set, then this will be the first run of the batch.
+    if (!isset($sandbox['progress'])) {
+      $max = 0;
+      foreach ($sandbox['base_tables'] as $entity_type_id => $base_table) {
+        $entities_count = $this->database->select($sandbox['base_tables'][$entity_type_id])
+          ->countQuery()
+          ->execute()
+          ->fetchField();
+        $sandbox[$entity_type_id]['max'] = (int) $entities_count;
+        $max += $entities_count;
+      }
+      $sandbox['current_id'] = 0;
+      $sandbox['max'] = $max;
+    }
+  }
+
+  /**
    * {@inheritdoc}
    */
   protected function updateFieldStorageDefinitionsToRevisionable(ContentEntityTypeInterface $entity_type, array $storage_definitions, array $fields_to_update = [], $update_cached_definitions = TRUE) {
@@ -264,6 +295,10 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
    * {@inheritdoc}
    */
   protected function copyData(array &$sandbox) {
+    if ($this->entityTypeId == 'menu_link_content') {
+      $zzz = '';
+    }
+
     /** @var \Drupal\Core\Entity\Sql\TemporaryTableMapping $temporary_table_mapping */
     $temporary_table_mapping = $sandbox['temporary_table_mapping'];
     $temporary_entity_type = $sandbox['temporary_entity_type'];
@@ -277,27 +312,21 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
     $revision_default_key = $temporary_entity_type->getRevisionMetadataKey('revision_default');
     $revision_translation_affected_key = $temporary_entity_type->getKey('revision_translation_affected');
 
-    // If 'progress' is not set, then this will be the first run of the batch.
     if (!isset($sandbox['progress'])) {
       $sandbox['progress'] = 0;
-      $sandbox['current_id'] = 0;
-      $sandbox['max'] = $this->database->select($original_base_table)
-        ->countQuery()
-        ->execute()
-        ->fetchField();
+    }
+    if (!isset($sandbox[$this->entityTypeId]['progress'])) {
+      $sandbox[$this->entityTypeId]['progress'] = 0;
     }
 
     $id = $original_entity_type->getKey('id');
-
-    // Define the step size.
-    $step_size = Settings::get('entity_update_batch_size', 50);
 
     // Get the next entity IDs to migrate.
     $entity_ids = $this->database->select($original_base_table)
       ->fields($original_base_table, [$id])
       ->condition($id, $sandbox['current_id'], '>')
       ->orderBy($id, 'ASC')
-      ->range(0, $step_size)
+      ->range(0, $sandbox['step_size'] ?: 50)
       ->execute()
       ->fetchAllKeyed(0, 0);
 
@@ -312,6 +341,9 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
     // storage and re-save the entities.
     $storage->setEntityType($temporary_entity_type);
     $storage->setTableMapping($temporary_table_mapping);
+
+    // This clear cache is needed at least for menu_link_content entity type.
+    $this->entityTypeManager->clearCachedDefinitions();
 
     foreach ($entities as $entity_id => $entity) {
       try {
@@ -373,19 +405,30 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
       }
 
       $sandbox['progress']++;
+      $sandbox[$this->entityTypeId]['progress']++;
       $sandbox['current_id'] = $entity_id;
     }
 
     // If we're not in maintenance mode, the number of entities could change at
     // any time so make sure that we always use the latest record count.
-    $sandbox['max'] = $this->database->select($original_base_table)
-      ->countQuery()
-      ->execute()
-      ->fetchField();
+    $max = 0;
+    foreach ($sandbox['base_tables'] as $entity_type_id => $base_table) {
+      $entities_count = $this->database->select($sandbox['base_tables'][$entity_type_id])
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+      $sandbox[$entity_type_id]['max'] = $entities_count;
+      $max += $entities_count;
+    }
+    $sandbox['max'] = $max;
 
+    $sandbox[$this->entityTypeId]['finished'] = empty($sandbox[$this->entityTypeId]['max']) ? 1 : ($sandbox[$this->entityTypeId]['progress'] / $sandbox[$this->entityTypeId]['max']);
     $sandbox['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['progress'] / $sandbox['max']);
   }
 
+  /**
+   * @param \Drupal\Core\Entity\ContentEntityTypeInterface $entity_type
+   */
   protected function installPublishedStatusField(ContentEntityTypeInterface $entity_type) {
     // Get the 'published' key for the published status field.
     $published_key = $entity_type->getKey('published') ?: 'status';
@@ -447,6 +490,11 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
     $sandbox['updated_storage_definitions'] = $updated_storage_definitions;
   }
 
+  /**
+   * Install fields provided by Multiversion.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityTypeInterface $entity_type
+   */
   protected function installMultiversionFields(ContentEntityTypeInterface $entity_type) {
     $fields[] = BaseFieldDefinition::create('workspace_reference')
       ->setName('workspace')
@@ -487,6 +535,12 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
     }
   }
 
+  /**
+   * Helper that returns the fields that need to be revisionable for the
+   * current entity type.
+   *
+   * @return array
+   */
   protected function getFieldsToUpdate() {
     $base_field_definitions = $this->entityFieldManager->getBaseFieldDefinitions($this->entityTypeId);
     $entity_type = $this->entityDefinitionUpdateManager->getEntityType($this->entityTypeId);
@@ -507,4 +561,5 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
     }
     return $fields_to_update;
   }
+
 }
