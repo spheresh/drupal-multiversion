@@ -6,6 +6,8 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\file\FileInterface;
+use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
+use Drupal\entity_reference_revisions\EntityReferenceRevisionsFieldItemList;
 use Drupal\path\Plugin\Field\FieldType\PathFieldItemList;
 use Drupal\pathauto\PathautoState;
 use Drupal\user\UserStorageInterface;

@@ -313,7 +313,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       if (isset($sandbox[$entity_type_id]['finished'])
         && $sandbox[$entity_type_id]['finished'] == 1) {
         $enabled_entity_types[] = $entity_type_id;
-        $multiversion_settings  
+        $multiversion_settings
           ->set('enabled_entity_types', $enabled_entity_types)
           ->save();
       }
