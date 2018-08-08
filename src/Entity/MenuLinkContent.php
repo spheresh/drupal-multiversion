@@ -23,7 +23,7 @@ class MenuLinkContent extends CoreMenuLinkContent {
 
     $parent = $this->parent->value;
     if ($parent && strpos($parent, 'menu_link_content') === 0) {
-      list($content_type_id, $parent_uuid, $parent_id) = explode(':', $parent);
+      list($content_type_id, $parent_uuid, $parent_id) = array_pad(explode(':', $parent),3, NULL);
       if (empty($parent_id) && $content_type_id == 'menu_link_content') {
         $parents = $storage->loadByProperties(['uuid' => $parent_uuid]);
         if (!empty($parents)) {
