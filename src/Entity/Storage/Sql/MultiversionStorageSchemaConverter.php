@@ -295,10 +295,6 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
    * {@inheritdoc}
    */
   protected function copyData(array &$sandbox) {
-    if ($this->entityTypeId == 'menu_link_content') {
-      $zzz = '';
-    }
-
     /** @var \Drupal\Core\Entity\Sql\TemporaryTableMapping $temporary_table_mapping */
     $temporary_table_mapping = $sandbox['temporary_table_mapping'];
     $temporary_entity_type = $sandbox['temporary_entity_type'];

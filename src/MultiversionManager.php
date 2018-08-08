@@ -234,8 +234,6 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       return $this;
     }
 
-    self::enableIsActive(array_keys($entity_types));
-    $this->entityTypeManager->clearCachedDefinitions();
     // Temporarily disable the maintenance of the {comment_entity_statistics} table.
     $this->state->set('comment.maintain_entity_statistics', FALSE);
     $multiversion_settings = \Drupal::configFactory()
@@ -264,6 +262,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
           ],
           [
             $entity_type_id,
+            $this->entityTypeManager,
             $this->state,
             $multiversion_settings,
             &$sandbox
@@ -303,7 +302,9 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     return $this;
   }
 
-  public static function convertToMultiversionable($entity_type_id, StateInterface $state, $multiversion_settings, &$sandbox) {
+  public static function convertToMultiversionable($entity_type_id, EntityTypeManagerInterface $entity_type_manager, StateInterface $state, $multiversion_settings, &$sandbox) {
+    self::enableIsActive([$entity_type_id]);
+    $entity_type_manager->useCaches(FALSE);
     $enabled_entity_types = $multiversion_settings->get('enabled_entity_types') ?: [];
     $schema_converter = \Drupal::service('multiversion.schema_converter_factory')
       ->getStorageSchemaConverter($entity_type_id);
