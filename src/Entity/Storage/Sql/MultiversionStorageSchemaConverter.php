@@ -62,9 +62,10 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
   }
 
   public function convertToMultiversionable(array &$sandbox) {
-    // Return if the migration for current entity type has been finished.
-    if (isset($sandbox[$this->entityTypeId]['finished'])
-      && $sandbox[$this->entityTypeId]['finished'] == 1) {
+    // Return if the conversion for current entity type has been finished.
+    if ((isset($sandbox[$this->entityTypeId]['finished'])
+      && $sandbox[$this->entityTypeId]['finished'] == 1)
+      || !empty($sandbox[$this->entityTypeId]['failed'])) {
       return;
     }
 

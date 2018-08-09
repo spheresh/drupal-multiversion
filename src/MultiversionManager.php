@@ -93,7 +93,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
   }
 
   /**
-   * Static method maintaining the enable migration status.
+   * Static method maintaining the enable status.
    *
    * This method needs to be static because in some strange situations Drupal
    * might create multiple instances of this manager. Is this only an issue
@@ -111,12 +111,12 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
   }
 
   /**
-   * Static method maintaining the disable migration status.
+   * Static method maintaining the disable status.
    *
    * @param boolean|array $status
    * @return boolean|array
    */
-  public static function disableMigrationIsActive($status = NULL) {
+  public static function disableIsActive($status = NULL) {
     static $cache = FALSE;
     if ($status !== NULL) {
       $cache = $status;
@@ -196,7 +196,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     $supported_entity_types = \Drupal::config('multiversion.settings')->get('supported_entity_types') ?: [];
     $id = $entity_type->id();
     $enable_active = self::enableIsActive();
-    $disable_migration = self::disableMigrationIsActive();
+    $disable_migration = self::disableIsActive();
     // Don't allow to alter entity type that is not supported.
     if (!in_array($id, $supported_entity_types)) {
       return FALSE;
@@ -247,7 +247,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       if (in_array($entity_type_id, $enabled_entity_types)) {
         continue;
       }
-      $base_table = $entity_type->getBaseTable();;
+      $base_table = $entity_type->getBaseTable();
       $sandbox['base_tables'][$entity_type_id] = $base_table;
       $entities_count = $this->connection->select($base_table)
         ->countQuery()
@@ -306,20 +306,29 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     self::enableIsActive([$entity_type_id]);
     $entity_type_manager->useCaches(FALSE);
     $enabled_entity_types = $multiversion_settings->get('enabled_entity_types') ?: [];
+    /** @var \Drupal\multiversion\Entity\Storage\Sql\MultiversionStorageSchemaConverter $schema_converter */
     $schema_converter = \Drupal::service('multiversion.schema_converter_factory')
       ->getStorageSchemaConverter($entity_type_id);
 
     try {
       $schema_converter->convertToMultiversionable($sandbox);
       if (isset($sandbox[$entity_type_id]['finished'])
-        && $sandbox[$entity_type_id]['finished'] == 1) {
+        && $sandbox[$entity_type_id]['finished'] == 1
+        && !in_array($entity_type_id, $enabled_entity_types)) {
         $enabled_entity_types[] = $entity_type_id;
         $multiversion_settings
           ->set('enabled_entity_types', $enabled_entity_types)
           ->save();
+        // Remove the entity from failed to convert entity types, if it's there.
+        $failed_entity_types = $state->get('multiversion.failed_entity_types', []);
+        if (($key = array_search($entity_type_id, $failed_entity_types)) !== FALSE) {
+          unset($failed_entity_types[$key]);
+          $state->set('multiversion.failed_entity_types', $failed_entity_types);
+        }
       }
     }
     catch (\Exception $e) {
+      $sandbox[$entity_type_id]['failed'] = TRUE;
       $failed_entity_types = $state->get('multiversion.failed_entity_types', []);
       $arguments = Error::decodeException($e) + ['%entity_type' => $entity_type_id];
       \Drupal::logger('multiversion')->warning('Entity type \'%entity_type\' failed to be converted to multiversionable. More info: %type: @message in %function (line %line of %file).', $arguments);
@@ -333,86 +342,75 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
    */
   public function disableEntityTypes($entity_types_to_disable = NULL) {
 //    $entity_types = ($entity_types_to_disable !== NULL) ? $entity_types_to_disable : $this->getEnabledEntityTypes();
-//    $migration = $this->createMigration();
-//    $migration->installDependencies();
-//    $has_data = $this->prepareContentForMigration($entity_types, $migration);
-//
 //    if (empty($entity_types)) {
 //      return $this;
 //    }
 //
-//    if ($entity_types_to_disable === NULL) {
-//      // Uninstall field storage definitions provided by multiversion.
-//      $this->entityTypeManager->clearCachedDefinitions();
-//      $update_manager = \Drupal::entityDefinitionUpdateManager();
-//      foreach ($this->entityTypeManager->getDefinitions() as $entity_type) {
-//        if ($entity_type->isSubclassOf(FieldableEntityInterface::CLASS)) {
-//          $entity_type_id = $entity_type->id();
-//          $revision_key = $entity_type->getKey('revision');
-//          /** @var \Drupal\Core\Entity\FieldableEntityStorageInterface $storage */
-//          $storage = $this->entityTypeManager->getStorage($entity_type_id);
-//          foreach ($this->entityFieldManager->getFieldStorageDefinitions($entity_type_id) as $storage_definition) {
-//            // @todo We need to trigger field purging here.
-//            //   See https://www.drupal.org/node/2282119.
-//            if ($storage_definition->getProvider() == 'multiversion' && !$storage->countFieldData($storage_definition, TRUE) && $storage_definition->getName() != $revision_key) {
-//              $update_manager->uninstallFieldStorageDefinition($storage_definition);
-//            }
-//          }
-//        }
-//      }
-//    }
-//
-//    $enabled_entity_types = \Drupal::config('multiversion.settings')->get('enabled_entity_types') ?: [];
-//    foreach ($entity_types as $entity_type_id => $entity_type) {
-//      if (($key = array_search($entity_type_id, $enabled_entity_types)) !== FALSE) {
-//        unset($enabled_entity_types[$key]);
-//      }
-//    }
-//    if ($entity_types_to_disable === NULL) {
-//      $enabled_entity_types = [];
-//    }
-//    \Drupal::configFactory()
-//      ->getEditable('multiversion.settings')
-//      ->set('enabled_entity_types', $enabled_entity_types)
-//      ->save();
-//
-//    self::disableMigrationIsActive(array_keys($entity_types));
-//    $migration->applyNewStorage();
-//
 //    // Temporarily disable the maintenance of the {comment_entity_statistics} table.
 //    $this->state->set('comment.maintain_entity_statistics', FALSE);
-//    \Drupal::state()->resetCache();
-//
-//    // Definitions will now be updated. So fetch the new ones.
-//    $updated_entity_types = [];
+//    $multiversion_settings = \Drupal::configFactory()
+//      ->getEditable('multiversion.settings');
+//    $enabled_entity_types = $multiversion_settings->get('enabled_entity_types') ?: [];
+//    $operations = [];
+//    $sandbox = [];
+//    // Define the step size.
+//    $sandbox['step_size'] = Settings::get('entity_conversion_batch_size', 50);
 //    foreach ($entity_types as $entity_type_id => $entity_type) {
-//      $updated_entity_types[$entity_type_id] = $this->entityTypeManager->getStorage($entity_type_id)->getEntityType();
-//    }
-//    foreach ($updated_entity_types as $entity_type_id => $entity_type) {
-//      // Drop unique key from uuid on each entity type.
-//      $base_table = $entity_type->getBaseTable();
-//      $uuid_key = $entity_type->getKey('uuid');
-//      $this->connection->schema()->dropUniqueKey($base_table, $entity_type_id . '_field__' . $uuid_key . '__value');
-//
-//      // Migrate from the temporary storage to the drupal default storage.
-//      if ($has_data[$entity_type_id]) {
-//        $migration->migrateContentFromTemp($entity_type);
-//        $migration->cleanupMigration($entity_type_id . '__to_tmp');
-//        $migration->cleanupMigration($entity_type_id . '__from_tmp');
+//      if (!in_array($entity_type_id, $enabled_entity_types)) {
+//        continue;
 //      }
+//      $base_table = $entity_type->getBaseTable();
+//      $sandbox['base_tables'][$entity_type_id] = $base_table;
+//      $entities_count = $this->connection->select($base_table)
+//        ->countQuery()
+//        ->execute()
+//        ->fetchField();
+//      $i = 0;
+//      while ($i <= $entities_count) {
+//        $operations[] = [
+//          [
+//            get_class($this),
+//            'convertToOriginal',
+//          ],
+//          [
+//            $entity_type_id,
+//            $this->entityTypeManager,
+//            $this->state,
+//            $multiversion_settings,
+//            &$sandbox
+//          ],
+//        ];
+//        $i += $sandbox['step_size'];
+//      }
+//      $operations[] = [
+//        [
+//          get_class($this),
+//          'fixPrimaryKeys',
+//        ],
+//        [
+//          $entity_type_id,
+//          $this->entityTypeManager,
+//          $this->connection,
+//        ],
+//      ];
+//    }
 //
-//      $this->state->delete("multiversion.migration_done.$entity_type_id");
+//    // Create and process the batch.
+//    if (!empty($operations)) {
+//      $batch = [
+//        'operations' => $operations,
+//        'finished' => [get_class($this), 'conversionFinished']
+//      ];
+//      batch_set($batch);
+//      $batch =& batch_get();
+//      $batch['progressive'] = FALSE;
+//      batch_process();
 //    }
 //
 //    // Enable the the maintenance of entity statistics for comments.
 //    $this->state->set('comment.maintain_entity_statistics', TRUE);
-//
-//    // Clean up after us.
-//    $migration->uninstallDependencies();
-//    self::disableMigrationIsActive(FALSE);
-//
-//    $this->state->delete('multiversion.migration_done');
-//
+//    self::disableIsActive(NULL);
+
     return $this;
   }
 
