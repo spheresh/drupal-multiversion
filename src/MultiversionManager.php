@@ -457,6 +457,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
   }
 
   static function fixPrimaryKeys($entity_type_id, EntityTypeManagerInterface $entity_type_manager, Connection $connection) {
+    $connection = \Drupal::service('database');
     $entity_type = $entity_type_manager->getStorage($entity_type_id)->getEntityType();
     // Make sure that 'id', 'revision' and 'langcode' are primary keys.
     if ($entity_type_id != 'file' && $entity_type->get('local') != TRUE && !empty($entity_type->getKey('langcode'))) {
