@@ -370,7 +370,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
 //        $operations[] = [
 //          [
 //            get_class($this),
-//            'convertToOriginal',
+//            'convertToOriginalStorage',
 //          ],
 //          [
 //            $entity_type_id,
@@ -413,6 +413,41 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
 
     return $this;
   }
+
+//  public static function convertToOriginalStorage($entity_type_id, EntityTypeManagerInterface $entity_type_manager, StateInterface $state, $multiversion_settings, &$sandbox) {
+//    self::disableIsActive([$entity_type_id]);
+//    $entity_type_manager->useCaches(FALSE);
+//    $enabled_entity_types = $multiversion_settings->get('enabled_entity_types') ?: [];
+//    /** @var \Drupal\multiversion\Entity\Storage\Sql\MultiversionStorageSchemaConverter $schema_converter */
+//    $schema_converter = \Drupal::service('multiversion.schema_converter_factory')
+//      ->getStorageSchemaConverter($entity_type_id);
+//
+//    try {
+//      $schema_converter->convertToOriginalStorage($sandbox);
+//      if (isset($sandbox[$entity_type_id]['finished'])
+//        && $sandbox[$entity_type_id]['finished'] == 1
+//        && in_array($entity_type_id, $enabled_entity_types)) {
+//        unset($enabled_entity_types[$entity_type_id]);
+//        $multiversion_settings
+//          ->set('enabled_entity_types', $enabled_entity_types)
+//          ->save();
+//        // Remove the entity from failed to convert entity types, if it's there.
+//        $failed_entity_types = $state->get('multiversion.failed_entity_types', []);
+//        if (($key = array_search($entity_type_id, $failed_entity_types)) !== FALSE) {
+//          unset($failed_entity_types[$key]);
+//          $state->set('multiversion.failed_entity_types', $failed_entity_types);
+//        }
+//      }
+//    }
+//    catch (\Exception $e) {
+//      $sandbox[$entity_type_id]['failed'] = TRUE;
+//      $failed_entity_types = $state->get('multiversion.failed_entity_types', []);
+//      $arguments = Error::decodeException($e) + ['%entity_type' => $entity_type_id];
+//      \Drupal::logger('multiversion')->warning('Entity type \'%entity_type\' failed to be converted to original storage. More info: %type: @message in %function (line %line of %file).', $arguments);
+//      $failed_entity_types[] = $entity_type_id;
+//      $state->set('multiversion.failed_entity_types', $failed_entity_types);
+//    }
+//  }
 
   /**
    * {@inheritdoc}
@@ -457,25 +492,46 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
   }
 
   static function fixPrimaryKeys($entity_type_id, EntityTypeManagerInterface $entity_type_manager, Connection $connection) {
-    $connection = \Drupal::service('database');
-    $entity_type = $entity_type_manager->getStorage($entity_type_id)->getEntityType();
+    $storage = $entity_type_manager->getStorage($entity_type_id);
+    $entity_type = $storage->getEntityType();
     // Make sure that 'id', 'revision' and 'langcode' are primary keys.
     if ($entity_type_id != 'file' && $entity_type->get('local') != TRUE && !empty($entity_type->getKey('langcode'))) {
       $schema = $connection->schema();
-      // Get the tables name used for base table and revision table.
-      $table_base = ($entity_type->isTranslatable()) ? $entity_type->getDataTable() : $entity_type->getBaseTable();
-      $table_revision = ($entity_type->isTranslatable()) ? $entity_type->getRevisionDataTable() : $entity_type->getRevisionTable();
-      if ($table_base && $schema->tableExists($table_base)) {
+      // Fix primary key in the base table.
+      $base_table = $storage->getBaseTable();
+      try {
+        $id_key = $entity_type->getKey('id');
+        $connection->query('ALTER TABLE {' . $base_table . '} MODIFY COLUMN ' . $id_key . ' INT(10) UNSIGNED AUTO_INCREMENT PRIMARY KEY');
+      }
+      catch (\Exception $e) {
+        // Do nothing, the index already exists.
+      }
+
+      // Fix primary key in the revision table.
+      if ($revision_table = $storage->getRevisionTable()) {
         try {
-          $schema->addPrimaryKey($table_base, [$entity_type->getKey('id'), 'langcode']);
+          $revision_key = $entity_type->getKey('revision');
+          $connection->query('ALTER TABLE {' . $revision_table . '} MODIFY COLUMN ' . $revision_key . ' INT(10) UNSIGNED AUTO_INCREMENT PRIMARY KEY');
         }
         catch (\Exception $e) {
           // Do nothing, the index already exists.
         }
       }
-      if ($table_revision && $schema->tableExists($table_revision)) {
+
+      // Fix primary key in the data table.
+      if ($entity_type->isTranslatable() && $data_table = $storage->getDataTable()) {
         try {
-          $schema->addPrimaryKey($table_revision, [$entity_type->getKey('revision'), 'langcode']);
+          $schema->addPrimaryKey($data_table, [$entity_type->getKey('id'), $entity_type->getKey('langcode')]);
+        }
+        catch (\Exception $e) {
+          // Do nothing, the index already exists.
+        }
+      }
+
+      // Fix primary key in the revision data table.
+      if ($entity_type->isTranslatable() && $revision_data_table = $storage->getRevisionDataTable()) {
+        try {
+          $schema->addPrimaryKey($revision_data_table, [$entity_type->getKey('revision'), $entity_type->getKey('langcode')]);
         }
         catch (\Exception $e) {
           // Do nothing, the index already exists.

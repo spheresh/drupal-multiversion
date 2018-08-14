@@ -196,6 +196,132 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
     }
   }
 
+//  public function convertToOriginalStorage(array &$sandbox) {
+//    // Return if the conversion for current entity type has been finished.
+//    if ((isset($sandbox[$this->entityTypeId]['finished'])
+//        && $sandbox[$this->entityTypeId]['finished'] == 1)
+//      || !empty($sandbox[$this->entityTypeId]['failed'])) {
+//      return;
+//    }
+//
+//    // Initialize entity types conversion.
+//    $this->initializeConversion($sandbox);
+//
+//    // If the condition is TRUE, then this will be the first run of the
+//    // operation.
+//    if (!isset($sandbox[$this->entityTypeId]['finished'])
+//      || $sandbox[$this->entityTypeId]['finished'] < 1) {
+//      // Store the original entity type and field definitions in the $sandbox
+//      // array so we can use them later in the update process.
+//      $this->collectOriginalDefinitions($sandbox);
+//
+//      // Create a temporary environment in which the new data will be stored.
+//      $this->createTemporaryDefinitions($sandbox, []);
+//
+//      // Create the updated entity schema using temporary tables.
+//      /** @var \Drupal\Core\Entity\Sql\SqlContentEntityStorage $storage */
+//      $storage = $this->entityTypeManager->getStorage($this->entityTypeId);
+//      $storage->setTemporary(TRUE);
+//      $storage->setEntityType($sandbox['temporary_entity_type']);
+//      $storage->onEntityTypeCreate($sandbox['temporary_entity_type']);
+//    }
+//
+//    // Copy over the existing data to the new temporary tables.
+//    $this->copyDataToOriginal($sandbox);
+//
+//    // If the data copying has finished successfully, we can drop the temporary
+//    // tables and call the appropriate update mechanisms.
+//    if ($sandbox[$this->entityTypeId]['finished'] == 1) {
+//      $sandbox['current_id'] = 0;
+//      $this->entityTypeManager->useCaches(FALSE);
+//      $actual_entity_type = $this->entityTypeManager->getDefinition($this->entityTypeId);
+//
+//      // Rename the original tables so we can put them back in place in case
+//      // anything goes wrong.
+//      foreach ($sandbox['original_table_mapping']->getTableNames() as $table_name) {
+//        $old_table_name = TemporaryTableMapping::getTempTableName($table_name, 'old_');
+//        $this->database->schema()->renameTable($table_name, $old_table_name);
+//      }
+//
+//      // Put the new tables in place and update the entity type and field
+//      // storage definitions.
+//      try {
+//        $storage = $this->entityTypeManager->getStorage($this->entityTypeId);
+//        $storage->setEntityType($actual_entity_type);
+//        $storage->setTemporary(FALSE);
+//        $actual_table_names = $storage->getTableMapping()->getTableNames();
+//
+//        $table_name_mapping = [];
+//        foreach ($actual_table_names as $new_table_name) {
+//          $temp_table_name = TemporaryTableMapping::getTempTableName($new_table_name);
+//          $table_name_mapping[$temp_table_name] = $new_table_name;
+//          $this->database->schema()->renameTable($temp_table_name, $new_table_name);
+//        }
+//
+//        // Rename the tables in the cached entity schema data.
+//        $entity_schema_data = $this->installedStorageSchema->get($this->entityTypeId . '.entity_schema_data', []);
+//        foreach ($entity_schema_data as $temp_table_name => $schema) {
+//          if (isset($table_name_mapping[$temp_table_name])) {
+//            $entity_schema_data[$table_name_mapping[$temp_table_name]] = $schema;
+//            unset($entity_schema_data[$temp_table_name]);
+//          }
+//        }
+//        $this->installedStorageSchema->set($this->entityTypeId . '.entity_schema_data', $entity_schema_data);
+//
+//        // Rename the tables in the cached field schema data.
+//        foreach ($sandbox['updated_storage_definitions'] as $storage_definition) {
+//          $field_schema_data = $this->installedStorageSchema->get($this->entityTypeId . '.field_schema_data.' . $storage_definition->getName(), []);
+//          foreach ($field_schema_data as $temp_table_name => $schema) {
+//            if (isset($table_name_mapping[$temp_table_name])) {
+//              $field_schema_data[$table_name_mapping[$temp_table_name]] = $schema;
+//              unset($field_schema_data[$temp_table_name]);
+//            }
+//          }
+//          $this->installedStorageSchema->set($this->entityTypeId . '.field_schema_data.' . $storage_definition->getName(), $field_schema_data);
+//        }
+//
+//        // Instruct the entity schema handler that data migration has been
+//        // handled already and update the entity type.
+//        $actual_entity_type->set('requires_data_migration', FALSE);
+//        $this->entityDefinitionUpdateManager->updateEntityType($actual_entity_type);
+//
+//        // Apply updates.
+//        $this->entityTypeManager->clearCachedDefinitions();
+////        $field_definitions = $this->entityFieldManager->getFieldStorageDefinitions($this->entityTypeId);
+////        foreach ($field_definitions as $field_definition) {
+////          $this->entityDefinitionUpdateManager->updateFieldStorageDefinition($field_definition);
+////        }
+//        $this->entityDefinitionUpdateManager->applyUpdates();
+//        $this->entityDefinitionUpdateManager->applyUpdates();
+//
+//      }
+//      catch (\Exception $e) {
+//        // Something went wrong, bring back the original tables.
+//        foreach ($sandbox['original_table_mapping']->getTableNames() as $table_name) {
+//          // We are in the 'original data recovery' phase, so we need to be sure
+//          // that the initial tables can be properly restored.
+//          if ($this->database->schema()->tableExists($table_name)) {
+//            $this->database->schema()->dropTable($table_name);
+//          }
+//
+//          $old_table_name = TemporaryTableMapping::getTempTableName($table_name, 'old_');
+//          $this->database->schema()->renameTable($old_table_name, $table_name);
+//        }
+//
+//        // Re-throw the original exception.
+//        throw $e;
+//      }
+//
+//      // At this point the update process either finished successfully or any
+//      // error has been handled already, so we can drop the backup entity
+//      // tables.
+//      foreach ($sandbox['original_table_mapping']->getTableNames() as $table_name) {
+//        $old_table_name = TemporaryTableMapping::getTempTableName($table_name, 'old_');
+//        $this->database->schema()->dropTable($old_table_name);
+//      }
+//    }
+//  }
+
   /**
    * @param array $sandbox
    */
@@ -354,10 +480,6 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
         // Set the published status to TRUE.
         $entity->set($published_key, TRUE);
 
-        // Workspace field value is the current active workspace.
-        $active_workspace = $this->workspaceManager->getActiveWorkspace();
-        $entity->set('workspace', ['entity' => $active_workspace]);
-
         // Set the revision token field.
         $rev_token = '1-' . md5($entity->id() . $entity->uuid() . $this->random->string(10, TRUE));
         $entity->set('_rev', $rev_token);
@@ -422,6 +544,103 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
     $sandbox[$this->entityTypeId]['finished'] = empty($sandbox[$this->entityTypeId]['max']) ? 1 : ($sandbox[$this->entityTypeId]['progress'] / $sandbox[$this->entityTypeId]['max']);
     $sandbox['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['progress'] / $sandbox['max']);
   }
+
+//  /**
+//   * {@inheritdoc}
+//   */
+//  protected function copyDataToOriginal(array &$sandbox) {
+//    /** @var \Drupal\Core\Entity\Sql\TemporaryTableMapping $temporary_table_mapping */
+//    $temporary_table_mapping = $sandbox['temporary_table_mapping'];
+//    $temporary_entity_type = $sandbox['temporary_entity_type'];
+//    $original_table_mapping = $sandbox['original_table_mapping'];
+//    $original_entity_type = $sandbox['original_entity_type'];
+//
+//    $original_base_table = $original_entity_type->getBaseTable();
+//
+//    if (!isset($sandbox['progress'])) {
+//      $sandbox['progress'] = 0;
+//    }
+//    if (!isset($sandbox[$this->entityTypeId]['progress'])) {
+//      $sandbox[$this->entityTypeId]['progress'] = 0;
+//    }
+//
+//    $id = $original_entity_type->getKey('id');
+//
+//    // Get the next entity IDs to migrate.
+//    $entity_ids = $this->database->select($original_base_table)
+//      ->fields($original_base_table, [$id])
+//      ->condition($id, $sandbox['current_id'], '>')
+//      ->orderBy($id, 'ASC')
+//      ->range(0, $sandbox['step_size'] ?: 50)
+//      ->execute()
+//      ->fetchAllKeyed(0, 0);
+//
+//    /** @var \Drupal\Core\Entity\Sql\SqlContentEntityStorage $storage */
+//    $storage = $this->entityTypeManager->getStorage($temporary_entity_type->id());
+//    $storage->setEntityType($original_entity_type);
+//    $storage->setTableMapping($original_table_mapping);
+//
+//    $entities = $storage->loadMultiple($entity_ids);
+//
+//    // Now inject the temporary entity type definition and table mapping in the
+//    // storage and re-save the entities.
+//    $storage->setEntityType($temporary_entity_type);
+//    $storage->setTableMapping($temporary_table_mapping);
+//
+//    // This clear cache is needed at least for menu_link_content entity type.
+//    $this->entityTypeManager->clearCachedDefinitions();
+//
+//    foreach ($entities as $entity_id => $entity) {
+//      try {
+//        // Treat the entity as new in order to make the storage do an INSERT
+//        // rather than an UPDATE.
+//        $entity->enforceIsNew(TRUE);
+//
+//        // Finally, save the entity in the temporary storage.
+//        $storage->save($entity);
+//
+//        // Delete the entry for the old entry in the menu_tree table.
+//        if ($original_entity_type->id() == 'menu_link_content' && $this->database->schema()->tableExists('menu_tree')) {
+//          $this->database->delete('menu_tree')
+//            ->condition('id', 'menu_link_content:' . $entity->uuid())
+//            ->execute();
+//        }
+//      }
+//      catch (\Exception $e) {
+//        // In case of an error during the save process, we need to roll back the
+//        // original entity type and field storage definitions and clean up the
+//        // temporary tables.
+//        $this->restoreOriginalDefinitions($sandbox);
+//
+//        foreach ($temporary_table_mapping->getTableNames() as $table_name) {
+//          $this->database->schema()->dropTable($table_name);
+//        }
+//
+//        // Re-throw the original exception with a helpful message.
+//        throw new EntityStorageException("The entity update process failed while processing the entity {$original_entity_type->id()}:$entity_id.", $e->getCode(), $e);
+//      }
+//
+//      $sandbox['progress']++;
+//      $sandbox[$this->entityTypeId]['progress']++;
+//      $sandbox['current_id'] = $entity_id;
+//    }
+//
+//    // If we're not in maintenance mode, the number of entities could change at
+//    // any time so make sure that we always use the latest record count.
+//    $max = 0;
+//    foreach ($sandbox['base_tables'] as $entity_type_id => $base_table) {
+//      $entities_count = $this->database->select($sandbox['base_tables'][$entity_type_id])
+//        ->countQuery()
+//        ->execute()
+//        ->fetchField();
+//      $sandbox[$entity_type_id]['max'] = $entities_count;
+//      $max += $entities_count;
+//    }
+//    $sandbox['max'] = $max;
+//
+//    $sandbox[$this->entityTypeId]['finished'] = empty($sandbox[$this->entityTypeId]['max']) ? 1 : ($sandbox[$this->entityTypeId]['progress'] / $sandbox[$this->entityTypeId]['max']);
+//    $sandbox['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['progress'] / $sandbox['max']);
+//  }
 
   /**
    * @param \Drupal\Core\Entity\ContentEntityTypeInterface $entity_type
@@ -493,18 +712,6 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
    * @param \Drupal\Core\Entity\ContentEntityTypeInterface $entity_type
    */
   protected function installMultiversionFields(ContentEntityTypeInterface $entity_type) {
-    $fields[] = BaseFieldDefinition::create('workspace_reference')
-      ->setName('workspace')
-      ->setTargetEntityTypeId($entity_type->id())
-      ->setTargetBundle(NULL)
-      ->setLabel(t('Workspace reference'))
-      ->setDescription(t('The workspace this entity belongs to.'))
-      ->setSetting('target_type', 'workspace')
-      ->setRevisionable(FALSE)
-      ->setTranslatable(FALSE)
-      ->setCardinality(1)
-      ->setReadOnly(TRUE);
-
     $fields[] = BaseFieldDefinition::create('boolean')
       ->setName('_deleted')
       ->setTargetEntityTypeId($entity_type->id())
@@ -546,7 +753,6 @@ class MultiversionStorageSchemaConverter extends SqlContentEntityStorageSchemaCo
       $entity_type->getKey('revision') ?: 'revision_id',
       $entity_type->getKey('uuid'),
       $entity_type->getKey('bundle'),
-      'workspace',
       '_deleted',
       '_rev',
     ];

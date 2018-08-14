@@ -62,11 +62,6 @@ trait QueryTrait {
         }
       }
 
-      // Set the workspace condition.
-      if ($workspace_id = $this->getWorkspaceId()) {
-        $this->condition('workspace', $workspace_id);
-      }
-
       // Loading a revision is explicit. So when we try to load one we should do
       // so without a condition on the deleted flag.
       if (!$revision_query) {

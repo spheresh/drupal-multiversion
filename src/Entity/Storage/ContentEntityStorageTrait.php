@@ -2,7 +2,6 @@
 
 namespace Drupal\multiversion\Entity\Storage;
 
-use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\file\FileInterface;
@@ -10,7 +9,6 @@ use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
 use Drupal\entity_reference_revisions\EntityReferenceRevisionsFieldItemList;
 use Drupal\path\Plugin\Field\FieldType\PathFieldItemList;
 use Drupal\pathauto\PathautoState;
-use Drupal\user\UserStorageInterface;
 
 trait ContentEntityStorageTrait {
 
@@ -54,14 +52,12 @@ trait ContentEntityStorageTrait {
    */
   protected function buildQuery($ids, $revision_ids = FALSE) {
     $query = parent::buildQuery($ids, $revision_ids);
-    $enabled = \Drupal::state()->get('multiversion.migration_done.' . $this->getEntityTypeId(), FALSE);
 
     // Prevent to modify the query before entity type updates.
-    if (!is_subclass_of($this->entityType->getStorageClass(), ContentEntityStorageInterface::class) || !$enabled) {
+    if (!is_subclass_of($this->entityType->getStorageClass(), ContentEntityStorageInterface::class)) {
       return $query;
     }
 
-    $field_data_alias = 'base';
     $revision_data_alias = 'revision';
     if ($this->entityType->isTranslatable()) {
       // Join the field data table in order to set the workspace condition.
@@ -83,13 +79,6 @@ trait ContentEntityStorageTrait {
     // so without a condition on the deleted flag.
     if (!$revision_ids) {
       $query->condition("$revision_data_alias._deleted", (int) $this->isDeleted);
-    }
-    // Entities in other workspaces than the active one can only be queried with
-    // the Entity Query API and not by the storage handler itself.
-    // Just UserStorage can be queried in all workspaces by the storage handler.
-    if (!$this instanceof UserStorageInterface) {
-      // We have to join the data table to set a condition on the workspace.
-      $query->condition("$field_data_alias.workspace", $this->getWorkspaceId());
     }
     return $query;
   }
@@ -318,7 +307,7 @@ trait ContentEntityStorageTrait {
    * @param \Drupal\Core\Entity\EntityInterface $entity
    */
   protected function indexEntity(EntityInterface $entity) {
-    $workspace = isset($entity->workspace) ? $entity->workspace->entity : null;
+    $workspace = isset($entity->workspaceID) ? $entity->workspace->entity : null;
     $index_factory = \Drupal::service('multiversion.entity_index.factory');
 
     $index_factory->get('multiversion.entity_index.id', $workspace)
@@ -495,74 +484,6 @@ trait ContentEntityStorageTrait {
    */
   public function purge(array $entities) {
     parent::delete($entities);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function resetCache(array $ids = NULL) {
-    parent::resetCache($ids);
-    $ws = $this->getWorkspaceId();
-    if ($this->entityType->isStaticallyCacheable() && isset($ids)) {
-      foreach ($ids as $id) {
-        unset($this->entities[$ws][$id]);
-      }
-    }
-    else {
-      $this->entities[$ws] = [];
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function getFromStaticCache(array $ids) {
-    $ws = $this->getWorkspaceId();
-    $entities = [];
-    // Load any available entities from the internal cache.
-    if ($this->entityType->isStaticallyCacheable() && !empty($this->entities[$ws])) {
-      $entities += array_intersect_key($this->entities[$ws], array_flip($ids));
-    }
-    return $entities;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function setStaticCache(array $entities) {
-    if ($this->entityType->isStaticallyCacheable()) {
-      $ws = $this->getWorkspaceId();
-      if (!isset($this->entities[$ws])) {
-        $this->entities[$ws] = [];
-      }
-      $this->entities[$ws] += $entities;
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function buildCacheId($id) {
-    $ws = $this->getWorkspaceId();
-    return "values:{$this->entityTypeId}:$id:$ws";
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function setPersistentCache($entities) {
-    if (!$this->entityType->isPersistentlyCacheable()) {
-      return;
-    }
-    $ws = $this->getWorkspaceId();
-    $cache_tags = [
-      $this->entityTypeId . '_values',
-      'entity_field_info',
-      'workspace_' . $ws,
-    ];
-    foreach ($entities as $entity) {
-      $this->cacheBackend->set($this->buildCacheId($entity->id()), $entity, CacheBackendInterface::CACHE_PERMANENT, $cache_tags);
-    }
   }
 
   /**

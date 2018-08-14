@@ -152,18 +152,6 @@ function multiversion_entity_base_field_info(EntityTypeInterface $entity_type) {
       ->setTranslatable(TRUE)
       ->setDefaultValue(TRUE);
 
-    $fields['workspace'] = BaseFieldDefinition::create('workspace_reference')
-      ->setName('workspace')
-      ->setTargetEntityTypeId($entity_type->id())
-      ->setTargetBundle(NULL)
-      ->setLabel(t('Workspace reference'))
-      ->setDescription(t('The workspace this entity belongs to.'))
-      ->setSetting('target_type', 'workspace')
-      ->setRevisionable(FALSE)
-      ->setTranslatable(FALSE)
-      ->setCardinality(1)
-      ->setReadOnly(TRUE);
-
     $fields['_deleted'] = BaseFieldDefinition::create('boolean')
       ->setName('_deleted')
       ->setTargetEntityTypeId($entity_type->id())
@@ -225,7 +213,6 @@ function multiversion_entity_base_field_info_alter(&$fields, EntityTypeInterface
       $entity_type->getKey('revision') ?: 'revision_id',
       $entity_type->getKey('uuid'),
       $entity_type->getKey('bundle'),
-      'workspace',
       '_deleted',
       '_rev',
     ];
@@ -281,39 +268,6 @@ function multiversion_paragraph_update(EntityInterface $entity) {
           \Drupal::logger('Multiversion')->error('%type: @message in %function (line %line of %file). ' . $details, Error::decodeException($e));
         }
       }
-    }
-  }
-}
-
-/**
- * Implements hook_views_data_alter().
- */
-function multiversion_views_data_alter(array &$data) {
-  foreach ($data as $key => $item) {
-    // Set standard handler for _rev field.
-    if (isset($data[$key]['_rev'])) {
-      $data[$key]['_rev']['field']['id'] = 'standard';
-    }
-    if (isset($data[$key]['_deleted'])) {
-      // Use status = 1 instead of status <> 0 in WHERE statement.
-      $data[$key]['_deleted']['filter']['use_equal'] = TRUE;
-    }
-    // Add a new filter that filters content by current active workspace.
-    if (isset($data[$key]['workspace'])) {
-      $data[$key]['current_workspace'] = [
-        'title' => t('Current workspace'),
-        'help' => t('Filters content by current active workspace.'),
-        'filter' => [
-          'field' => 'workspace',
-          'id' => 'current_workspace',
-          'label' => t('Current workspace'),
-        ],
-      ];
-      // Unset the 'Workspace reference' filter because users are not allowed to
-      // filter by a specific workspace, other than current active workspace.
-      // To filter by current active workspace will be used the 'Current workspace'
-      // filter.
-      unset($data[$key]['workspace']);
     }
   }
 }
@@ -391,11 +345,6 @@ function multiversion_views_query_alter(ViewExecutable $view, QueryPluginBase $q
       'value' => FALSE,
       'operator' => '=',
     ];
-    $view->query->where[1]['conditions'][] = [
-      'field' => $base_table . '.workspace',
-      'value' => \Drupal::service('workspaces.manager')->getActiveWorkspace()->id(),
-      'operator' => '=',
-    ];
   }
 }
 
@@ -408,8 +357,7 @@ function multiversion_query_entity_query_alter(AlterableInterface $query) {
   if ($entity_type_id && \Drupal::service('multiversion.manager')->isEnabledEntityType($entity_type)) {
     $revision_key = $entity_type->getKey('revision');
     $data_table = $entity_type->getDataTable();
-    $active_workspace = \Drupal::service('workspaces.manager')->getActiveWorkspace();
-    if ($data_table && $active_workspace instanceof Workspace) {
+    if ($data_table) {
       if (!in_array($data_table, array_column($query->getTables(), 'table'))) {
         $query->join(
           $data_table,
@@ -417,7 +365,6 @@ function multiversion_query_entity_query_alter(AlterableInterface $query) {
           'base_table.' . $revision_key . '=' . $data_table . '.' . $revision_key
         );
       }
-      $query->condition($data_table . '.workspace', $active_workspace->id());
     }
   }
 }
@@ -447,13 +394,6 @@ function multiversion_element_pre_render($element) {
     );
   }
   return $element;
-}
-
-/**
- * URI callback for the workspace entity type.
- */
-function multiversion_workspace_uri(Workspace $entity) {
-  return $entity->id();
 }
 
 /**
@@ -564,19 +504,5 @@ function multiversion_modules_installed($modules) {
   }
   if (!empty($entities_to_enable)) {
     \Drupal::service('multiversion.manager')->enableEntityTypes($entities_to_enable);
-  }
-}
-
-/**
- * Implements hook_preprocess_HOOK().
- *
- * Adds the workspace as a class to the body.
- */
-function multiversion_preprocess_html(&$variables) {
-  $active_workspace = \Drupal::service('workspaces.manager')
-    ->getActiveWorkspace();
-  if ($active_workspace && $machine_name = $active_workspace->id()) {
-    // Add a new body class with the active workspace.
-    $variables['attributes']['class'][] = 'workspace-' . $machine_name;
   }
 }
