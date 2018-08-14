@@ -495,7 +495,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     $storage = $entity_type_manager->getStorage($entity_type_id);
     $entity_type = $storage->getEntityType();
     // Make sure that 'id', 'revision' and 'langcode' are primary keys.
-    if ($entity_type_id != 'file' && $entity_type->get('local') != TRUE && !empty($entity_type->getKey('langcode'))) {
+    if ($entity_type->get('local') != TRUE) {
       $schema = $connection->schema();
       // Fix primary key in the base table.
       $base_table = $storage->getBaseTable();
