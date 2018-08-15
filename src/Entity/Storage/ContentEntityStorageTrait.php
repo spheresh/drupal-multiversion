@@ -9,6 +9,7 @@ use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
 use Drupal\entity_reference_revisions\EntityReferenceRevisionsFieldItemList;
 use Drupal\path\Plugin\Field\FieldType\PathFieldItemList;
 use Drupal\pathauto\PathautoState;
+use Drupal\workspaces\Entity\Workspace;
 
 trait ContentEntityStorageTrait {
 
@@ -75,7 +76,24 @@ trait ContentEntityStorageTrait {
         $query->join($revision_data_table, $revision_data_alias, "$revision_data_alias.{$this->revisionKey} = revision.{$this->revisionKey}");
       }
     }
-    // Loading a revision is explicit. So when we try to load one we should do
+
+    $workspace = Workspace::load($this->getWorkspaceId());
+    if (!$workspace->isDefaultWorkspace()) {
+      $query->addMetaData('active_workspace_id', $workspace->id());
+      $query->addMetaData('simple_query', FALSE);
+
+      // LEFT JOIN 'workspace_association' to the base table of the query so we
+      // can properly include live content along with a possible workspace
+      // revision.
+      $workspace_association_table = 'workspace_association';
+      $query->leftJoin($workspace_association_table, $workspace_association_table, "%alias.target_entity_type_id = '{$this->entityTypeId}' AND %alias.target_entity_id = base.{$this->idKey}");
+      $query->condition($query->orConditionGroup()
+        ->condition("$workspace_association_table.workspace", $workspace->id())
+        ->condition("$workspace_association_table.workspace", NULL, 'IS')
+      );
+    }
+
+    // Loadings a revision is explicit. So when we try to load one we should do
     // so without a condition on the deleted flag.
     if (!$revision_ids) {
       $query->condition("$revision_data_alias._deleted", (int) $this->isDeleted);
@@ -307,7 +325,7 @@ trait ContentEntityStorageTrait {
    * @param \Drupal\Core\Entity\EntityInterface $entity
    */
   protected function indexEntity(EntityInterface $entity) {
-    $workspace = isset($entity->workspaceID) ? $entity->workspace->entity : null;
+    $workspace = Workspace::load($this->getWorkspaceId());
     $index_factory = \Drupal::service('multiversion.entity_index.factory');
 
     $index_factory->get('multiversion.entity_index.id', $workspace)
@@ -323,7 +341,7 @@ trait ContentEntityStorageTrait {
    * @param \Drupal\Core\Entity\EntityInterface $entity
    */
   protected function indexEntitySequence(EntityInterface $entity) {
-    $workspace = isset($entity->workspace) ? $entity->workspace->entity : null;
+    $workspace = Workspace::load($this->getWorkspaceId());
     \Drupal::service('multiversion.entity_index.factory')
       ->get('multiversion.entity_index.sequence', $workspace)
       ->add($entity);
@@ -335,7 +353,7 @@ trait ContentEntityStorageTrait {
    * @param \Drupal\Core\Entity\EntityInterface $entity
    */
   protected function indexEntityRevision(EntityInterface $entity) {
-    $workspace = isset($entity->workspace) ? $entity->workspace->entity : null;
+    $workspace = Workspace::load($this->getWorkspaceId());
     \Drupal::service('multiversion.entity_index.factory')
       ->get('multiversion.entity_index.rev', $workspace)
       ->add($entity);
@@ -348,7 +366,7 @@ trait ContentEntityStorageTrait {
    * @param array $branch
    */
   protected function indexEntityRevisionTree(EntityInterface $entity, $branch) {
-    $workspace = isset($entity->workspace) ? $entity->workspace->entity : null;
+    $workspace = Workspace::load($this->getWorkspaceId());
     \Drupal::service('multiversion.entity_index.factory')
       ->get('multiversion.entity_index.rev.tree', $workspace)
       ->updateTree($entity, $branch);
@@ -433,7 +451,7 @@ trait ContentEntityStorageTrait {
 
       // Decide whether or not this is the default revision.
       if (!$entity->isNew()) {
-        $workspace = isset($entity->workspace) ? $entity->workspace->entity : null;
+        $workspace = Workspace::load($this->getWorkspaceId());
         $index_factory = \Drupal::service('multiversion.entity_index.factory');
         /** @var \Drupal\multiversion\Entity\Index\RevisionTreeIndexInterface $tree */
         $tree = $index_factory->get('multiversion.entity_index.rev.tree', $workspace);
@@ -493,7 +511,7 @@ trait ContentEntityStorageTrait {
    *   The entity to track for which to track conflicts.
    */
   protected function trackConflicts(EntityInterface $entity) {
-    $workspace = isset($entity->workspace) ? $entity->workspace->entity : null;
+    $workspace = Workspace::load($this->getWorkspaceId());
     /** @var \Drupal\multiversion\Conflict\ConflictTrackerInterface $conflictTracker */
     $conflictTracker = \Drupal::service('multiversion.conflict_tracker')
       ->useWorkspace($workspace);

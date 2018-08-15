@@ -42,8 +42,12 @@ services:
     arguments: ['@keyvalue', '@workspaces.manager', '@multiversion.entity_index.factory']
 
   multiversion.entity.query.sql:
+    decorates: workspaces.entity.query.sql
     class: Drupal\multiversion\Entity\Query\Sql\QueryFactory
-    arguments: ['@database']
+    arguments: ['@database', '@workspaces.manager']
+    decoration_priority: 60
+    tags:
+    - { name: backend_overridable }
   multiversion.manager:
     class: Drupal\multiversion\MultiversionManager
     arguments: ['@workspaces.manager', '@serializer', '@entity.manager', '@state', '@language_manager', '@cache.discovery', '@database', '@entity_field.manager']

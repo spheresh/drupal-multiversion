@@ -49,6 +49,7 @@ trait QueryTrait {
 
   public function prepare() {
     parent::prepare();
+    /** @var \Drupal\Core\Entity\ContentEntityTypeInterface $entity_type */
     $entity_type = $this->entityTypeManager->getDefinition($this->entityTypeId);
     $enabled = \Drupal::state()->get('multiversion.migration_done.' . $this->getEntityTypeId(), FALSE);
     // Add necessary conditions just when the storage class is defined by the

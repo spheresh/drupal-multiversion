@@ -234,7 +234,6 @@ function multiversion_paragraph_update(EntityInterface $entity) {
   $parent = $entity->getParentEntity();
   $entity_revision_parent_field_name = $entity->getEntityType()->get('entity_revision_parent_field_name_field');
   if ($parent instanceof ContentEntityInterface
-    && !empty($entity->workspace)
     && $entity_revision_parent_field_name
     && !empty($entity->{$entity_revision_parent_field_name}->value)) {
     $parent_field_name = $entity->{$entity_revision_parent_field_name}->value;
@@ -367,33 +366,6 @@ function multiversion_query_entity_query_alter(AlterableInterface $query) {
       }
     }
   }
-}
-
-/**
- * Implements hook_element_info_alter().
- */
-function multiversion_element_info_alter(array &$types) {
-  foreach ($types as &$type) {
-    if (!isset($type['#pre_render'])) {
-      $type['#pre_render'] = [];
-    }
-    $type['#pre_render'][] = 'multiversion_element_pre_render';
-  }
-}
-
-/**
- * Element pre-render callback.
- */
-function multiversion_element_pre_render($element) {
-  if (isset($element['#cache'])) {
-    if (!isset($element['#cache']['contexts'])) {
-      $element['#cache']['contexts'] = [];
-    }
-    $element['#cache']['contexts'] = Cache::mergeContexts(
-      $element['#cache']['contexts'], ['workspace']
-    );
-  }
-  return $element;
 }
 
 /**
