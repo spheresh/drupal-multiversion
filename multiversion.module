@@ -369,6 +369,22 @@ function multiversion_query_entity_query_alter(AlterableInterface $query) {
 }
 
 /**
+ * Implements hook_query_TAG_alter().
+ */
+function multiversion_query_taxonomy_term_access_alter(AlterableInterface $query) {
+  $active_workspace = \Drupal::service('workspaces.manager')->getActiveWorkspace();
+  if (!$active_workspace->isDefaultWorkspace()
+    && !$query->hasTag('entity_query_taxonomy_term')) {
+    $workspace_association_table = 'workspace_association';
+    $query->leftJoin($workspace_association_table, $workspace_association_table, "%alias.target_entity_type_id = 'taxonomy_term' AND %alias.target_entity_id = t.tid");
+    $query->condition($query->orConditionGroup()
+      ->condition("$workspace_association_table.workspace", $active_workspace->id())
+      ->condition("$workspace_association_table.workspace", NULL, 'IS')
+    );
+  }
+}
+
+/**
  * Implements hook_form_FORM_ID_alter().
  */
 function multiversion_form_node_type_edit_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state) {
