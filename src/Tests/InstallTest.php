@@ -36,15 +36,37 @@ class InstallTest extends WebTestBase {
    * @var array
    */
   protected $entityTypes = [
-//    'entity_test' => [],
+    'entity_test' => [],
     'entity_test_rev' => [],
     'entity_test_mul' => [],
     'entity_test_mulrev' => [],
-    'node' => ['type' => 'article', 'title' => 'foo'],
+    'node' => ['type' => 'article', 'title' => 'Foo'],
     'file' => [
       'uid' => 1,
       'filemime' => 'text/plain',
       'status' => FILE_STATUS_PERMANENT,
+    ],
+    'block_content' => [
+      'info' => 'New block',
+      'type' => 'basic',
+    ],
+    'menu_link_content' => [
+      'menu_name' => 'menu_test',
+      'bundle' => 'menu_link_content',
+      'link' => [['uri' => 'user-path:/']],
+    ],
+    'shortcut' => [
+      'shortcut_set' => 'default',
+      'title' => 'Llama',
+      'weight' => 0,
+      'link' => [['uri' => 'internal:/admin']],
+    ],
+    'comment' => [
+      'entity_type' => 'node',
+      'comment_type' => 'comment',
+      'field_name' => 'comment',
+      'subject' => 'How much wood would a woodchuck chuck',
+      'mail' => 'someone@example.com',
     ],
   ];
 
@@ -57,6 +79,7 @@ class InstallTest extends WebTestBase {
     'comment',
     'menu_link_content',
     'block_content',
+    'shortcut',
     'file',
   ];
 
