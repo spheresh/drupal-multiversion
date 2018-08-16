@@ -370,6 +370,8 @@ function multiversion_query_entity_query_alter(AlterableInterface $query) {
 
 /**
  * Implements hook_query_TAG_alter().
+ *
+ * @see \Drupal\taxonomy\TermStorage::loadTree().
  */
 function multiversion_query_taxonomy_term_access_alter(AlterableInterface $query) {
   $active_workspace = \Drupal::service('workspaces.manager')->getActiveWorkspace();
