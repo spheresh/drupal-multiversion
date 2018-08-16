@@ -64,6 +64,13 @@ class DeletedTest extends ViewsTestBase {
     $node4 = $this->drupalCreateNode(['uid' => $this->uid]);
     $node4->delete();
 
+    $this->drupalGet('test_not_deleted');
+    $session = $this->assertSession();
+    $session->pageTextContains($node1->label());
+    $session->pageTextContains($node2->label());
+    $session->pageTextNotContains($node3->label());
+    $session->pageTextNotContains($node4->label());
+
     $alpha = $this->createWorkspaceThroughUi('Alpha', 'alpha');
     $this->switchToWorkspace($alpha);
     $node5 = $this->drupalCreateNode(['uid' => $this->uid]);
