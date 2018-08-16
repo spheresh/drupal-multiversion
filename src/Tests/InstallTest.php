@@ -7,11 +7,11 @@ use Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test the MigrationTest class.
+ * Tests the module installation.
  *
  * @group multiversion
  */
-class MigrationTest extends WebTestBase {
+class InstallTest extends WebTestBase {
 
   protected $strictConfigSchema = FALSE;
 
@@ -122,15 +122,6 @@ class MigrationTest extends WebTestBase {
           ->count()
           ->execute();
         $this->assertEqual($rev, 1, "$entity_type_id $entity_id has a revision hash in database");
-
-        if ($entity_type->get('workspace') !== FALSE) {
-          $workspace = (int) $storage->getQuery()
-            ->condition($id_key, $entity_id)
-            ->condition('workspace', 1)
-            ->count()
-            ->execute();
-          $this->assertEqual($workspace, 1, "$entity_type_id $entity_id has correct workspace in database");
-        }
 
         $deleted = (int) $storage->getQuery()
           ->condition($id_key, $entity_id)
