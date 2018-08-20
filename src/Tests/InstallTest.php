@@ -2,6 +2,7 @@
 
 namespace Drupal\multiversion\Tests;
 
+use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\multiversion\Entity\Query\QueryInterface;
 use Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface;
 use Drupal\simpletest\WebTestBase;
@@ -134,6 +135,8 @@ class InstallTest extends WebTestBase {
       $this->assertTrue($this->multiversionManager->isEnabledEntityType($entity_type), "$entity_type_id was enabled for Multiversion.");
       $this->assertTrue($storage instanceof ContentEntityStorageInterface, "$entity_type_id got the correct storage handler assigned.");
       $this->assertTrue($storage->getQuery() instanceof QueryInterface, "$entity_type_id got the correct query handler assigned.");
+      $this->assertTrue($entity_type->isRevisionable(), "$entity_type_id is revisionable.");
+      $this->assertTrue($entity_type->entityClassImplements(EntityPublishedInterface::class), "$entity_type_id is publishable.");
 
       $ids_after[$entity_type_id] = $storage->getQuery()->execute();
       $this->assertEqual($count_before[$entity_type_id], count($ids_after[$entity_type_id]), "All ${entity_type_id}s were migrated.");
@@ -160,8 +163,15 @@ class InstallTest extends WebTestBase {
     // that is being returned as supported and enabled.
     $this->moduleInstaller->install(['taxonomy']);
 
-    $entity_type = \Drupal::entityTypeManager()->getDefinition('taxonomy_term');
+    $entity_type_id = 'taxonomy_term';
+    $storage = \Drupal::entityTypeManager()->getStorage($entity_type_id);
+    $entity_type = $storage->getEntityType();
     $this->assertTrue($this->multiversionManager->isEnabledEntityType($entity_type), 'Newly installed entity types got enabled as well.');
+    $this->assertTrue($storage instanceof ContentEntityStorageInterface, "$entity_type_id got the correct storage handler assigned.");
+    $this->assertTrue($storage->getQuery() instanceof QueryInterface, "$entity_type_id got the correct query handler assigned.");
+    $this->assertTrue($entity_type->isRevisionable(), "$entity_type_id is revisionable.");
+    $this->assertTrue($entity_type->entityClassImplements(EntityPublishedInterface::class), "$entity_type_id is publishable.");
+
     $this->assertFalse($update_manager->needsUpdates(), 'There are not new updates to apply.');
   }
 

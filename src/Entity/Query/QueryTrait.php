@@ -73,7 +73,6 @@ trait QueryTrait {
         // can properly include live content along with a possible workspace
         // revision.
         $id_key = $entity_type->getKey('id');
-//        $this->sqlQuery->leftJoin('workspace_association', 'workspace_association', "%alias.target_entity_type_id = '{$this->entityTypeId}' AND %alias.target_entity_id = base_table.{$id_key} AND %alias.workspace = '{$workspace->id()}'");
         $workspace_association_table = 'workspace_association';
         $this->sqlQuery->leftJoin($workspace_association_table, $workspace_association_table, "%alias.target_entity_type_id = '{$this->entityTypeId}' AND %alias.target_entity_id = base_table.{$id_key}");
         $this->sqlQuery->condition($this->sqlQuery->orConditionGroup()

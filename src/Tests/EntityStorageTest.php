@@ -143,7 +143,14 @@ class EntityStorageTest extends MultiversionWebTestBase {
 
   public function testEntityStorage() {
     // Test save and load.
-
+    /** @var \Drupal\workspaces\WorkspaceAssociationStorageInterface $workspace_association_storage */
+    $workspace_association_storage = $this->entityTypeManager->getStorage('workspace_association');
+    $workspace_alpha = Workspace::create([
+      'id' => $this->randomMachineName(),
+      'label' => $this->randomMachineName(),
+    ]);
+    $workspace_alpha->save();
+    $this->workspaceManager->setActiveWorkspace($workspace_alpha);
     foreach ($this->entityTypes as $entity_type_id => $info) {
       $storage = $this->entityTypeManager->getStorage($entity_type_id);
       $message = "$entity_type_id has the correct storage handler.";
@@ -196,24 +203,25 @@ class EntityStorageTest extends MultiversionWebTestBase {
       $entities = $storage->loadMultiple([$id]);
       $storage->delete($entities);
 
-      $connection = Database::getConnection();
-      $record = $connection->select($info['revision_table'], 'e')
-        ->fields('e')
-        ->condition('e.' . $info['id'], $id)
-        ->condition('e.' . $info['revision_id'], $revision_id + 1)
-        ->execute()
-        ->fetchObject();
-
-      $this->assertEqual($record->_deleted, 1, "Deleted $entity_type_id is still stored but flagged as deleted");
-      $entity = $storage->load($id);
-      $this->assertTrue(empty($entity), "Deleted $entity_type_id did not load with entity_load() function.");
-
       $entity = $storage->loadDeleted($id);
       $this->assertTrue(!empty($entity), "Deleted $entity_type_id loaded with loadDeleted() method.");
       $this->assertNotEqual($revision_id, $entity->getRevisionId(), "New revision was generated when deleting $entity_type_id.");
 
       $entities = $storage->loadMultipleDeleted([$id]);
       $this->assertTrue(!empty($entities), "Deleted $entity_type_id loaded with loadMultipleDeleted() method.");
+
+      $connection = Database::getConnection();
+      $revision_id = $entity->getRevisionId();
+      $record = $connection->select($info['revision_table'], 'e')
+        ->fields('e')
+        ->condition('e.' . $info['id'], $id)
+        ->condition('e.' . $info['revision_id'], $revision_id)
+        ->execute()
+        ->fetchObject();
+
+      $this->assertEqual($record->_deleted, 1, "Deleted $entity_type_id is still stored but flagged as deleted");
+      $entity = $storage->load($id);
+      $this->assertTrue(empty($entity), "Deleted $entity_type_id did not load with entity_load() function. Entity ID: $id, revision ID: $revision_id, revision token: {$entity->_rev->value}.");
 
       // Test revisions.
 
@@ -227,7 +235,8 @@ class EntityStorageTest extends MultiversionWebTestBase {
 
       $entities = $storage->loadMultiple([$id]);
       $storage->delete($entities);
-      $new_revision_id = ($revision_id + 1);
+      $entity = $storage->loadDeleted($id);
+      $new_revision_id = $entity->getRevisionId();
       $revision = $storage->loadRevision($new_revision_id);
       $this->assertTrue(($revision->_deleted->value == TRUE && $revision->getRevisionId() == $new_revision_id), "Deleted $entity_type_id was loaded.");
 
@@ -295,52 +304,40 @@ class EntityStorageTest extends MultiversionWebTestBase {
       ];
       $this->assertEqual($default_branch, $expected_default_branch, 'Default branch was built after exception on second save followed by re-save.');
 
-      // Test workspace.
+      // Test workspace references.
+      $entity = $storage->create($info['info']);
+      $entity->save();
+      $entity_id = $entity->id();
+      $tracking_workspace_ids = $workspace_association_storage->getEntityTrackingWorkspaceIds($entity);
+      $this->assertEqual(1, count($tracking_workspace_ids), "The workspace reference was saved for $entity_type_id.");
+      $this->assertEqual($workspace_alpha->id(), array_values($tracking_workspace_ids)[0]);
 
-      if ($entity_type->get('workspace') !== FALSE) {
-        $entity = $storage->create($info['info']);
-        $entity->save();
-        $entity_id = $entity->id();
-        $this->assertEqual($entity->workspace->target_id, 1, "The workspace reference was saved for $entity_type_id.");
-        $record = $connection->select($info['data_table'], 'e')
-          ->fields('e')
-          ->condition('e.' . $info['id'], $entity->id())
-          ->condition('e.' . $info['revision_id'], $entity->getRevisionId())
-          ->execute()
-          ->fetchObject();
-        $this->assertEqual($record->workspace, 1, "The workspace reference was stored for saved $entity_type_id.");
-
-        $entities = $storage->loadMultiple([$entity_id]);
-        $storage->delete($entities);
-        $entity = $storage->loadDeleted($entity_id);
-        $this->assertEqual($entity->workspace->target_id, 1, "The workspace reference is retained for deleted $entity_type_id.");
-        $record = $connection->select($info['data_table'], 'e')
-          ->fields('e')
-          ->condition('e.' . $info['id'], $entity->id())
-          ->condition('e.' . $info['revision_id'], $entity->getRevisionId())
-          ->execute()
-          ->fetchObject();
-        $this->assertEqual($record->workspace, 1, "The workspace reference was stored for deleted $entity_type_id.");
-      }
+      $entities = $storage->loadMultiple([$entity_id]);
+      $storage->delete($entities);
+      $entity = $storage->loadDeleted($entity_id);
+      $workspace_association_storage->getTrackedEntities($workspace_alpha->id());
+      $tracking_workspace_ids = $workspace_association_storage->getEntityTrackingWorkspaceIds($entity);
+      $this->assertEqual(1, count($tracking_workspace_ids), "The workspace reference was saved for deleted $entity_type_id.");
+      $this->assertEqual($workspace_alpha->id(), array_values($tracking_workspace_ids)[0]);
     }
 
     // Test saving entities in a different workspace.
 
     // Create a new workspace and switch to it.
-    $workspace = Workspace::create([
+    $workspace_beta = Workspace::create([
       'id' => $this->randomMachineName(),
       'label' => $this->randomMachineName(),
     ]);
-    $workspace->save();
-    $this->workspaceManager->setActiveWorkspace($workspace);
+    $workspace_beta->save();
+    $this->workspaceManager->setActiveWorkspace($workspace_beta);
 
     foreach ($this->entityTypes as $entity_type_id => $info) {
-        $storage = $this->entityTypeManager->getStorage($entity_type_id);
-        $entity = $storage->create($info['info']);
-        $entity->save();
-      if ($entity->getEntityType()->get('workspace') !== FALSE) {
-        $this->assertEqual($entity->workspace->target_id, $workspace->id(), "$entity_type_id was saved in new workspace.");
-      }
+      $storage = $this->entityTypeManager->getStorage($entity_type_id);
+      $entity = $storage->create($info['info']);
+      $entity->save();
+      $tracking_workspace_ids = $workspace_association_storage->getEntityTrackingWorkspaceIds($entity);
+      $this->assertEqual($workspace_beta->id(), array_values($tracking_workspace_ids)[0], "$entity_type_id was saved in new workspace.");
+
     }
 
     $uuids = [];
@@ -356,9 +353,9 @@ class EntityStorageTest extends MultiversionWebTestBase {
       $this->assertTrue(!empty($entity), "$entity_type_id was loaded in the workspace it belongs to.");
     }
 
-    // Switch back to the original workspace and check that the entities does
+    // Switch back to the Alpha workspace and check that the entities does
     // NOT exists here.
-    $this->workspaceManager->setActiveWorkspace(Workspace::load(1));
+    $this->workspaceManager->setActiveWorkspace($workspace_alpha);
 
     foreach ($this->entityTypes as $entity_type_id => $info) {
       $storage = $this->entityTypeManager->getStorage($entity_type_id);
@@ -402,15 +399,15 @@ class EntityStorageTest extends MultiversionWebTestBase {
           $target_entity->{$info['id']}->value = NULL;
 
           $target_entity->enforceIsNew(TRUE);
-          $target_entity->workspace->target_id = $target->id();
 
           // Save the new entity
           $target_entity->save();
 
+          $tracking_workspace_ids = $workspace_association_storage->getEntityTrackingWorkspaceIds($target_entity);
           $this->assertTrue(!empty($target_entity->id()), "$entity_type_id in the target workspace got a new entity ID");
           $this->assertEqual($target_entity->uuid(), $source_entity->uuid(), "Entities from source and target share the same UUID");
           $this->assertNotEqual($target_entity->id(), $source_entity->id(), "Entities from source and target does not share the same local ID");
-          $this->assertEqual($target_entity->workspace->entity->id(), $target->id(), "Entity in target workspace");
+          $this->assertTrue(in_array($target->id(), array_values($tracking_workspace_ids)));
         }
       }
     }

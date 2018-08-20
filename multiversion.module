@@ -77,7 +77,7 @@ function multiversion_entity_type_alter(array &$entity_types) {
           break;
 
         case 'file':
-//          $entity_type->setClass('Drupal\multiversion\Entity\File');
+          $entity_type->setClass('Drupal\multiversion\Entity\File');
           $entity_type->setHandlerClass('storage', "$namespace\\FileStorage");
           break;
 
@@ -86,7 +86,7 @@ function multiversion_entity_type_alter(array &$entity_types) {
           break;
 
         case 'shortcut':
-//          $entity_type->setClass('Drupal\multiversion\Entity\Shortcut');
+          $entity_type->setClass('Drupal\multiversion\Entity\Shortcut');
           if (in_array($original_storage_class, [NULL, 'Drupal\Core\Entity\Sql\SqlContentEntityStorage'])) {
             $entity_type->setHandlerClass('storage', "$namespace\\ContentEntityStorage");
           }
@@ -102,6 +102,34 @@ function multiversion_entity_type_alter(array &$entity_types) {
 
         case 'redirect':
           $entity_type->setHandlerClass('storage_schema', 'Drupal\multiversion\Redirect\RedirectStorageSchema');
+          if (in_array($original_storage_class, [NULL, 'Drupal\Core\Entity\Sql\SqlContentEntityStorage'])) {
+            $entity_type->setHandlerClass('storage', "$namespace\\ContentEntityStorage");
+          }
+          break;
+
+        case 'entity_test':
+          $entity_type->setClass('Drupal\multiversion\Entity\EntityTest');
+          if (in_array($original_storage_class, [NULL, 'Drupal\Core\Entity\Sql\SqlContentEntityStorage'])) {
+            $entity_type->setHandlerClass('storage', "$namespace\\ContentEntityStorage");
+          }
+          break;
+
+        case 'entity_test_mul':
+          $entity_type->setClass('Drupal\multiversion\Entity\EntityTestMul');
+          if (in_array($original_storage_class, [NULL, 'Drupal\Core\Entity\Sql\SqlContentEntityStorage'])) {
+            $entity_type->setHandlerClass('storage', "$namespace\\ContentEntityStorage");
+          }
+          break;
+
+        case 'entity_test_rev':
+          $entity_type->setClass('Drupal\multiversion\Entity\EntityTestRev');
+          if (in_array($original_storage_class, [NULL, 'Drupal\Core\Entity\Sql\SqlContentEntityStorage'])) {
+            $entity_type->setHandlerClass('storage', "$namespace\\ContentEntityStorage");
+          }
+          break;
+
+        case 'entity_test_mulrev':
+          $entity_type->setClass('Drupal\multiversion\Entity\EntityTestMulRev');
           if (in_array($original_storage_class, [NULL, 'Drupal\Core\Entity\Sql\SqlContentEntityStorage'])) {
             $entity_type->setHandlerClass('storage', "$namespace\\ContentEntityStorage");
           }
