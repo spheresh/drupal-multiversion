@@ -455,7 +455,6 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
   public function newRevisionId(ContentEntityInterface $entity, $index = 0) {
     $deleted = $entity->_deleted->value;
     $old_rev = $entity->_rev->value;
-    $revision_id = $entity->getRevisionId();
     $id = $entity->id();
     $uuid = $entity->uuid();
     // The terms being serialized are:
@@ -465,10 +464,9 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     // - old revision hash
     // - entity ID
     // - entity UUID
-    // - entity revision ID
     // - attachments (@todo: {@link https://www.drupal.org/node/2597341
     // Address this property.})
-    return ($index + 1) . '-' . md5($this->termToBinary([$deleted, 0, $old_rev, $id, $uuid, $revision_id, []]));
+    return ($index + 1) . '-' . md5($this->termToBinary([$deleted, 0, $old_rev, $id, $uuid, []]));
   }
 
   protected function termToBinary(array $term) {
