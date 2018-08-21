@@ -455,34 +455,20 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
   public function newRevisionId(ContentEntityInterface $entity, $index = 0) {
     $deleted = $entity->_deleted->value;
     $old_rev = $entity->_rev->value;
-    // The 'new_revision_id' context will be used in normalizers (where it's
-    // necessary) to identify in which format to return the normalized entity.
-    $normalized_entity = $this->serializer->normalize($entity, NULL, ['new_revision_id' => TRUE]);
-    // Remove fields internal to the multiversion system.
-    $this->filterNormalizedEntity($normalized_entity);
+    $revision_id = $entity->getRevisionId();
+    $id = $entity->id();
+    $uuid = $entity->uuid();
     // The terms being serialized are:
     // - deleted
     // - old sequence ID (@todo: {@link https://www.drupal.org/node/2597341
     // Address this property.})
     // - old revision hash
-    // - normalized entity (without revision info field)
+    // - entity ID
+    // - entity UUID
+    // - entity revision ID
     // - attachments (@todo: {@link https://www.drupal.org/node/2597341
     // Address this property.})
-    return ($index + 1) . '-' . md5($this->termToBinary([$deleted, 0, $old_rev, $entity->id(), []]));
-  }
-
-  /**
-   * @param array $normalized_entity
-   */
-  protected function filterNormalizedEntity(&$normalized_entity){
-    foreach ($normalized_entity as $key => &$value) {
-      if ($key{0} == '_') {
-        unset($normalized_entity[$key]);
-      }
-      elseif (is_array($value)) {
-        $this->filterNormalizedEntity($value);
-      }
-    }
+    return ($index + 1) . '-' . md5($this->termToBinary([$deleted, 0, $old_rev, $id, $uuid, $revision_id, []]));
   }
 
   protected function termToBinary(array $term) {
