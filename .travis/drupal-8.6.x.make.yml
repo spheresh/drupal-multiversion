@@ -6,6 +6,7 @@ projects:
   drupal:
     version: 8.6.x
     patch:
+      2994035-2: https://www.drupal.org/files/issues/2018-08-21/2994035-2.patch
       2988562-19: https://www.drupal.org/files/issues/2018-08-08/2988562-19.patch
       2737741-2: https://www.drupal.org/files/issues/drupal-menulinkcontent-getuuid-return-missing-2737741-2.patch
   key_value: 1.x
