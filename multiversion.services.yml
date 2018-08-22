@@ -78,25 +78,6 @@ services:
     class: Drupal\multiversion\Normalizer\WorkspaceReferenceItemNormalizer
     tags:
       - { name: normalizer, priority: 50 }
-  multiversion.alias_storage:
-    decorates: 'path.alias_storage'
-    class: Drupal\multiversion\AliasStorage
-    arguments: ['@database', '@module_handler', '@workspaces.manager', '@entity_type.manager', '@state']
-    public: false
-    decoration_priority: 50
-    tags:
-      - { name: backend_overridable }
-  # The decorated service must remain public in order to not break views
-  # (de-)serialization.
-  # See https://www.drupal.org/project/multiversion/issues/2973609
-  multiversion.route_provider:
-    decorates: 'router.route_provider'
-    class: Drupal\multiversion\RouteProvider
-    arguments: ['@database', '@state', '@path.current', '@cache.data', '@path_processor_manager', '@cache_tags.invalidator', 'router', '@language_manager', '@workspaces.manager']
-    decoration_priority: 50
-    tags:
-      - { name: event_subscriber }
-      - { name: backend_overridable }
   multiversion.schema_converter_factory:
     class: Drupal\multiversion\Entity\Storage\Sql\MultiversionStorageSchemaConverterFactory
     arguments: ['@entity_type.manager', '@entity.definition_update_manager', '@entity.last_installed_schema.repository', '@keyvalue', '@database', '@entity_field.manager', '@multiversion.manager', '@workspaces.manager']
