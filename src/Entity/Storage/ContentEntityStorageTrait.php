@@ -448,10 +448,7 @@ trait ContentEntityStorageTrait {
         $tree = $index_factory->get('multiversion.entity_index.rev.tree', $workspace);
         $default_rev = $tree->getDefaultRevision($entity->uuid());
 
-        // Paragraphs who's parent is the default revision should always be the
-        // default revision.
-        $paragraph_parent_default_rev = ($entity->getEntityTypeId() == 'paragraph' && $entity->getParentEntity()->isDefaultRevision());
-        if ($entity->_rev->value == $default_rev || $paragraph_parent_default_rev) {
+        if ($entity->_rev->value == $default_rev) {
           $entity->isDefaultRevision(TRUE);
         }
         // @todo: {@link https://www.drupal.org/node/2597538 Needs test.}
