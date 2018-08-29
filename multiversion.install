@@ -11,6 +11,23 @@ use Drupal\multiversion\MultiversionMigration;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
+ * Implements hook_requirements().
+ */
+function multiversion_requirements($phase) {
+  $requirements = [];
+  if ($phase === 'install') {
+    if (\Drupal::moduleHandler()->moduleExists('workspaces')) {
+      $requirements['workspaces_incompatibility'] = [
+        'severity' => REQUIREMENT_ERROR,
+        'description' => t('Multiversion can not be installed when Workspaces is also installed.'),
+      ];
+    }
+  }
+
+  return $requirements;
+}
+
+/**
  * Implements hook_install().
  */
 function multiversion_install() {
