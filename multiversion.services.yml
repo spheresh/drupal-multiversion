@@ -62,11 +62,6 @@ services:
     decoration_priority: 50
     parent: default_plugin_manager
     arguments: ['@logger.channel.default', '@database', '@workspaces.manager']
-  cache_context.workspace:
-    class: Drupal\multiversion\WorkspaceCacheContext
-    arguments: ['@workspaces.manager']
-    tags:
-      - { name: cache.context }
   logger.channel.workspace:
     parent: logger.channel_base
     arguments: ['cron']
