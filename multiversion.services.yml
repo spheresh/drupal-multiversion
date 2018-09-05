@@ -66,10 +66,6 @@ services:
     class: Drupal\multiversion\Entity\Index\ComplexLcaResolver
     tags:
       - { name: lca_resolver, priority: 20 }
-  multiversion.serializer.normalizer.entity_reference_item:
-    class: Drupal\multiversion\Normalizer\WorkspaceReferenceItemNormalizer
-    tags:
-      - { name: normalizer, priority: 50 }
   multiversion.schema_converter_factory:
     class: Drupal\multiversion\Entity\Storage\Sql\MultiversionStorageSchemaConverterFactory
     arguments: ['@entity_type.manager', '@entity.definition_update_manager', '@entity.last_installed_schema.repository', '@keyvalue', '@database', '@entity_field.manager', '@multiversion.manager', '@workspaces.manager']
