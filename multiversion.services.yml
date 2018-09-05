@@ -1,6 +1,3 @@
-parameters:
-  workspace.default: 1
-
 services:
   # Index Factory
   multiversion.entity_index.factory:
