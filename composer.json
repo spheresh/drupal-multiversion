@@ -7,8 +7,5 @@
     "drupal/key_value": "^1",
     "drupal/conflict": "^1-beta"
   },
-  "require-dev": {
-    "drupal/paragraphs": "^1.3.0"
-  },
   "license": "GPL-2.0+"
 }

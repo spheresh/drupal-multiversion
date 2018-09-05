@@ -91,14 +91,6 @@ function multiversion_entity_type_alter(array &$entity_types) {
           }
           break;
 
-        case 'poll':
-          $entity_type->setHandlerClass('storage', "$namespace\\PollStorage");
-          break;
-
-        case 'crop':
-          $entity_type->setHandlerClass('storage', "$namespace\\CropStorage");
-          break;
-
         case 'redirect':
           $entity_type->setHandlerClass('storage_schema', 'Drupal\multiversion\Redirect\RedirectStorageSchema');
           if (in_array($original_storage_class, [NULL, 'Drupal\Core\Entity\Sql\SqlContentEntityStorage'])) {
@@ -251,53 +243,6 @@ function multiversion_entity_base_field_info_alter(&$fields, EntityTypeInterface
 }
 
 /**
- * Implements hook_ENTITY_TYPE_update().
- */
-function multiversion_paragraph_update(EntityInterface $entity) {
-  // Update the target_revision_id field value for the parent entity if it
-  // changed (for example when saving a revision after a stub revision during
-  // replication).
-  $parent = $entity->getParentEntity();
-  $entity_revision_parent_field_name = $entity->getEntityType()->get('entity_revision_parent_field_name_field');
-  if ($parent instanceof ContentEntityInterface
-    && $entity_revision_parent_field_name
-    && !empty($entity->{$entity_revision_parent_field_name}->value)) {
-    $parent_field_name = $entity->{$entity_revision_parent_field_name}->value;
-    $storage = \Drupal::entityTypeManager()->getStorage($parent->getEntityTypeId());
-    $storage->resetCache([$parent->id()]);
-    // Load the most recent version of the parent.
-    $parent = $storage->load($parent->id());
-    if ($parent && !empty($parent->{$parent_field_name})) {
-      $save_parent = FALSE;
-      $values = $parent->{$parent_field_name}->getValue();
-      $updated_values = [];
-      foreach ($values as $delta => $value) {
-        $updated_values[$delta] = $value;
-        if ($value['target_id'] == $entity->id() && $value['target_revision_id'] != $entity->getRevisionId()) {
-          $updated_values[$delta]['target_revision_id'] = $entity->getRevisionId();
-          $save_parent = TRUE;
-        }
-      }
-      if ($save_parent) {
-        $parent->{$parent_field_name}->setValue($updated_values);
-        try {
-          $storage->saveWithoutForcingNewRevision($parent);
-          $storage->resetCache([$parent->id()]);
-        }
-        catch (\Exception $e) {
-          $details = t('Failed to save parent entity with UUID: %uuid_parent for paragraph entity with UUID: %uuid_paragraph.',
-            [
-              '%uuid_parent' => $parent->uuid(),
-              '%uuid_paragraph' => $entity->uuid(),
-            ]);
-          \Drupal::logger('Multiversion')->error('%type: @message in %function (line %line of %file). ' . $details, Error::decodeException($e));
-        }
-      }
-    }
-  }
-}
-
-/**
  * Implements hook_views_post_execute().
  */
 function multiversion_views_post_execute(ViewExecutable $view) {
@@ -353,8 +298,6 @@ function multiversion_views_query_alter(ViewExecutable $view, QueryPluginBase $q
     'glossary',
     'archive',
     'block_content',
-    'poll_admin',
-    'poll_list',
   ];
   if (in_array($view->id(), $views_ids)) {
     /** @var \Drupal\multiversion\MultiversionManagerInterface $manager */

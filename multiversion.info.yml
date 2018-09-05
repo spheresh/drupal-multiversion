@@ -9,7 +9,3 @@ dependencies:
   - drupal:serialization
   - key_value:key_value
   - conflict:conflict
-test_dependencies:
-  - paragraphs:paragraphs
-  - entity_reference_revisions:entity_reference_revisions
-  - poll:poll

@@ -273,35 +273,6 @@ trait ContentEntityStorageTrait {
     if (!$entity->isNew() && !isset($entity->original)) {
       $entity->original = $this->loadUnchanged($entity->originalId ?: $entity->id());
     }
-
-    // This is a workaround for the cases when referenced poll choices are stub
-    // entities (during replication). It will avoid deleting poll choice
-    // entities on target workspace in Drupal\poll\Entity\Poll::preSave() when
-    // not necessary.
-    // @todo Find a better way to handle this.
-    if (!$entity->isNew() && $this->entityTypeId === 'poll' && isset($entity->original) && $entity->_deleted->value == FALSE) {
-      $original_choices = [];
-      foreach ($entity->original->choice as $choice_item) {
-        $original_choices[] = $choice_item->target_id;
-      }
-
-      $current_choices = [];
-      $current_choices_entities = [];
-      foreach ($entity->choice as $key => $choice_item) {
-        $current_choices[$key] = $choice_item->target_id;
-        $current_choices_entities[$key] = $choice_item->entity;
-      }
-
-      foreach ($current_choices as $key => $id) {
-        if ($id === NULL
-          && isset($current_choices_entities[$key]->_rev->is_stub)
-          && $current_choices_entities[$key]->_rev->is_stub == TRUE
-          && isset($entity->original->choice)) {
-          unset($entity->original->choice);
-        }
-      }
-    }
-
     parent::doPreSave($entity);
   }
 
