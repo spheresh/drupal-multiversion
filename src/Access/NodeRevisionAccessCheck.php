@@ -10,9 +10,8 @@ use Symfony\Component\Routing\Route;
 
 class NodeRevisionAccessCheck extends CoreNodeRevisionAccessCheck {
 
-
   public function access(Route $route, AccountInterface $account, $node_revision = NULL, NodeInterface $node = NULL) {
-    return AccessResult::forbidden('Multiversion does not support reverting revisions');
+    return AccessResult::forbidden('Multiversion does not support reverting revisions.');
   }
 
 }

@@ -13,13 +13,7 @@ supported_entity_types:
   - entity_test_mul
   - entity_test_mulrev
   - entity_test_local
-  - content_moderation_state
   - replication_log
-  - paragraph
-  - paragraphs_library_item
-  - crop
-  - poll
-  - poll_choice
   - redirect
 #Entity types enabled by Multiversion. When Multiversion is installed it will enable all supported entity types if they
 #exist (if the module that provides the entity type is enabled).

@@ -1,6 +1,0 @@
-langcode: en
-status: true
-dependencies: {  }
-id: test_paragraph_type
-label: 'Test paragraph type'
-behavior_plugins: {  }
