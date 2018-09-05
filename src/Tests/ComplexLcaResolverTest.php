@@ -2,8 +2,6 @@
 
 namespace Drupal\multiversion\Tests;
 
-use Drupal\simpletest;
-
 /**
  * Test the Integration of LCA library with multiversion module.
  *

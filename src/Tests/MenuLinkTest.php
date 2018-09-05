@@ -53,8 +53,10 @@ class MenuLinkTest extends WebTestBase {
     $this->drupalLogin($web_user);
     $this->drupalPlaceBlock('system_menu_block:main');
 
-    $this->initialWorkspace = $this->workspaceManager->getActiveWorkspace();
-    $this->newWorkspace = Workspace::create(['id' => 'foo', 'label' => 'Foo']);
+    $this->initialWorkspace = Workspace::create(['id' => 'foo', 'label' => 'Foo']);
+    $this->initialWorkspace->save();
+    $this->workspaceManager->setActiveWorkspace($this->initialWorkspace);
+    $this->newWorkspace = Workspace::create(['id' => 'bar', 'label' => 'Bar']);
     $this->newWorkspace->save();
   }
 
@@ -67,17 +69,11 @@ class MenuLinkTest extends WebTestBase {
     ]);
     $pineapple->save();
 
-    $this->assertEqual(
-      $pineapple->get('workspace')->target_id,
-      $this->initialWorkspace->id(),
-      'Pineapple in initial workspace'
-    );
-
-    $this->assertNotEqual(
-      $pineapple->get('workspace')->target_id,
-      $this->newWorkspace->id(),
-      'Pineapple not in new workspace'
-    );
+    /** @var \Drupal\workspaces\WorkspaceAssociationStorageInterface $workspace_association_storage */
+    $workspace_association_storage = \Drupal::entityTypeManager()->getStorage('workspace_association');
+    $tracking_workspace_ids = $workspace_association_storage->getEntityTrackingWorkspaceIds($pineapple);
+    $this->assertEqual(1, count($tracking_workspace_ids), 'Pineapple tracked in correct number of workspaces.');
+    $this->assertTrue(in_array($this->initialWorkspace->id(), $tracking_workspace_ids), 'Pineapple in initial workspace.');
 
     $this->workspaceManager->setActiveWorkspace($this->newWorkspace);
 
@@ -90,17 +86,14 @@ class MenuLinkTest extends WebTestBase {
     ]);
     $pear->save();
 
-    $this->assertEqual(
-      $pear->get('workspace')->target_id,
-      $this->newWorkspace->id(),
-      'Pear in new workspace'
-    );
+    $tracking_workspace_ids = $workspace_association_storage->getEntityTrackingWorkspaceIds($pear);
+    $this->assertEqual(1, count($tracking_workspace_ids), 'Pear tracked in correct number of workspaces.');
+    $this->assertTrue(in_array($this->newWorkspace->id(), $tracking_workspace_ids), 'Pear in new workspace');
 
-    $this->assertNotEqual(
-      $pear->get('workspace')->target_id,
-      $this->initialWorkspace->id(),
-      'Pear not in initial workspace'
-    );
+    // Cheack again Pineapple.
+    $tracking_workspace_ids = $workspace_association_storage->getEntityTrackingWorkspaceIds($pineapple);
+    $this->assertEqual(1, count($tracking_workspace_ids), 'Pineapple tracked in correct number of workspaces.');
+    $this->assertTrue(in_array($this->initialWorkspace->id(), $tracking_workspace_ids), 'Pineapple in initial workspace.');
   }
 
 }

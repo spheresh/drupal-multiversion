@@ -386,31 +386,6 @@ class EntityStorageTest extends MultiversionWebTestBase {
       $entity->save();
       $entities[$entity_type_id][$entity->uuid()] = $entity;
     }
-
-    // Save the same entities on target as new entities, but with the same UUID.
-    $this->workspaceManager->setActiveWorkspace($target);
-    foreach ($this->entityTypes as $entity_type_id => $info) {
-      /** @var \Drupal\Core\Entity\ContentEntityInterface $source_entity */
-      foreach ($entities[$entity_type_id] as $source_entity) {
-        if ($source_entity->getEntityType()->get('workspace') !== FALSE) {
-          $target_entity = clone $source_entity;
-
-          // Reset the ID and assign the new workspace.
-          $target_entity->{$info['id']}->value = NULL;
-
-          $target_entity->enforceIsNew(TRUE);
-
-          // Save the new entity
-          $target_entity->save();
-
-          $tracking_workspace_ids = $workspace_association_storage->getEntityTrackingWorkspaceIds($target_entity);
-          $this->assertTrue(!empty($target_entity->id()), "$entity_type_id in the target workspace got a new entity ID");
-          $this->assertEqual($target_entity->uuid(), $source_entity->uuid(), "Entities from source and target share the same UUID");
-          $this->assertNotEqual($target_entity->id(), $source_entity->id(), "Entities from source and target does not share the same local ID");
-          $this->assertTrue(in_array($target->id(), array_values($tracking_workspace_ids)));
-        }
-      }
-    }
   }
 
 }
