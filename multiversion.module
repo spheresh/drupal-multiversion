@@ -91,13 +91,6 @@ function multiversion_entity_type_alter(array &$entity_types) {
           }
           break;
 
-        case 'redirect':
-          $entity_type->setHandlerClass('storage_schema', 'Drupal\multiversion\Redirect\RedirectStorageSchema');
-          if (in_array($original_storage_class, [NULL, 'Drupal\Core\Entity\Sql\SqlContentEntityStorage'])) {
-            $entity_type->setHandlerClass('storage', "$namespace\\ContentEntityStorage");
-          }
-          break;
-
         case 'entity_test':
           $entity_type->setClass('Drupal\multiversion\Entity\EntityTest');
           if (in_array($original_storage_class, [NULL, 'Drupal\Core\Entity\Sql\SqlContentEntityStorage'])) {

@@ -14,7 +14,6 @@ supported_entity_types:
   - entity_test_mulrev
   - entity_test_local
   - replication_log
-  - redirect
 #Entity types enabled by Multiversion. When Multiversion is installed it will enable all supported entity types if they
 #exist (if the module that provides the entity type is enabled).
 enabled_entity_types: {  }

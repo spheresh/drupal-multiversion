@@ -27,17 +27,6 @@ class MultiversionServiceProvider extends ServiceProviderBase {
       // Do nothing, comment module is not installed.
     }
 
-    // Override the redirect.repository class with a new class.
-    try {
-      $definition = $container->getDefinition('redirect.repository');
-      $definition->setClass('Drupal\multiversion\Redirect\RedirectRepository')
-        ->addArgument(new Reference('workspaces.manager'))
-        ->addArgument(new Reference('state'));
-    }
-    catch (InvalidArgumentException $e) {
-      // Do nothing, Redirect module is not installed.
-    }
-
     // Override the access_check.node.revision class with a new class.
     try {
       $definition = $container->getDefinition('access_check.node.revision');
