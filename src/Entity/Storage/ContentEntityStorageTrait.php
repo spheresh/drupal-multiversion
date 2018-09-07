@@ -458,7 +458,7 @@ trait ContentEntityStorageTrait {
     }
 
     // Reset the static cache for the "deleted" entities.
-    $this->resetCache(array_keys($ids));
+    $this->resetCache($ids);
   }
 
   /**
