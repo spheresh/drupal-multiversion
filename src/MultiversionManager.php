@@ -501,6 +501,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       $base_table = $storage->getBaseTable();
       try {
         $id_key = $entity_type->getKey('id');
+        $schema->dropPrimaryKey($base_table);
         $connection->query('ALTER TABLE {' . $base_table . '} MODIFY COLUMN ' . $id_key . ' INT(10) UNSIGNED AUTO_INCREMENT PRIMARY KEY');
       }
       catch (\Exception $e) {
@@ -511,6 +512,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       if ($revision_table = $storage->getRevisionTable()) {
         try {
           $revision_key = $entity_type->getKey('revision');
+          $schema->dropPrimaryKey($revision_table);
           $connection->query('ALTER TABLE {' . $revision_table . '} MODIFY COLUMN ' . $revision_key . ' INT(10) UNSIGNED AUTO_INCREMENT PRIMARY KEY');
         }
         catch (\Exception $e) {
@@ -521,6 +523,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       // Fix primary key in the data table.
       if ($entity_type->isTranslatable() && $data_table = $storage->getDataTable()) {
         try {
+          $schema->dropPrimaryKey($data_table);
           $schema->addPrimaryKey($data_table, [$entity_type->getKey('id'), $entity_type->getKey('langcode')]);
         }
         catch (\Exception $e) {
@@ -531,6 +534,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       // Fix primary key in the revision data table.
       if ($entity_type->isTranslatable() && $revision_data_table = $storage->getRevisionDataTable()) {
         try {
+          $schema->dropPrimaryKey($revision_data_table);
           $schema->addPrimaryKey($revision_data_table, [$entity_type->getKey('revision'), $entity_type->getKey('langcode')]);
         }
         catch (\Exception $e) {
