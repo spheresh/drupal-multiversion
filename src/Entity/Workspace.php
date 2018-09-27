@@ -105,11 +105,13 @@ class Workspace extends ContentEntityBase implements WorkspaceInterface {
       $workspace_id = $this->id();
       $entity_type_manager = \Drupal::entityTypeManager();
       // Delete related workspace pointer entities.
-      /** @var \Drupal\workspace\WorkspacePointerInterface[] $workspace_pointers */
-      $workspace_pointers = $entity_type_manager->getStorage('workspace_pointer')->loadByProperties(['workspace_pointer' => $workspace_id]);
-      if (!empty($workspace_pointers)) {
-        $workspace_pointer = reset($workspace_pointers);
-        $workspace_pointer->delete();
+      if ($entity_type_manager->getDefinition('workspace_pointer', FALSE)) {
+        /** @var \Drupal\workspace\WorkspacePointerInterface[] $workspace_pointers */
+        $workspace_pointers = $entity_type_manager->getStorage('workspace_pointer')->loadByProperties(['workspace_pointer' => $workspace_id]);
+        if (!empty($workspace_pointers)) {
+          $workspace_pointer = reset($workspace_pointers);
+          $workspace_pointer->delete();
+        }
       }
 
       /** @var \Drupal\Core\Queue\QueueInterface $queue */
