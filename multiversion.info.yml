@@ -4,11 +4,11 @@ description: 'Extends the revision support for content entities.'
 version: VERSION
 core: 8.x
 dependencies:
-  - key_value
-  - serialization
-  - conflict
-  - system (>=8.4.0)
+  - drupal:serialization
+  - drupal:system (>=8.4.0)
+  - key_value:key_value
+  - conflict:conflict
 test_dependencies:
-  - paragraphs
-  - entity_reference_revisions
-  - poll
+  - paragraphs:paragraphs
+  - entity_reference_revisions:entity_reference_revisions
+  - poll:poll
