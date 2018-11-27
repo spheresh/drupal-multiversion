@@ -94,6 +94,15 @@ class Workspace extends ContentEntityBase implements WorkspaceInterface {
 
     $fields['published']->addConstraint('UnpublishWorkspace');
 
+    $fields['queued_for_delete'] = BaseFieldDefinition::create('boolean')
+      ->setLabel(t('Queued for delete'))
+      ->setDescription(t('A flag that specifies if the entity has been queued for delete on next cron run.'))
+      ->setRevisionable(FALSE)
+      ->setTranslatable(FALSE)
+      ->setRequired(FALSE)
+      ->setDefaultValue(FALSE)
+      ->setInitialValue(FALSE);
+
     return $fields;
   }
 
@@ -150,6 +159,7 @@ class Workspace extends ContentEntityBase implements WorkspaceInterface {
         'entity_id' => $workspace_id,
       ];
       $queue->createItem($data);
+      $this->setQueuedForDelete()->save();
 
       if ($this->id() === $multiversion_manager->getActiveWorkspaceId()) {
         $multiversion_manager->setActiveWorkspaceId(\Drupal::getContainer()->getParameter('workspace.default'));
@@ -214,6 +224,21 @@ class Workspace extends ContentEntityBase implements WorkspaceInterface {
   public function setOwnerId($uid) {
     $this->set('uid', $uid);
     return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setQueuedForDelete($queued = TRUE) {
+    $this->set('queued_for_delete', (bool) $queued);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getQueuedForDelete() {
+    return $this->get('queued_for_delete')->value;
   }
 
   /**

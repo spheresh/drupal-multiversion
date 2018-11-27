@@ -590,3 +590,20 @@ function multiversion_update_8109() {
     }
   }
 }
+
+/**
+ * Add the queued_for_delete field.
+ */
+function multiversion_update_8110() {
+  $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  // Add the queued for delete flag for the workspace entity type.
+  $queued_for_delete = BaseFieldDefinition::create('boolean')
+    ->setLabel(t('Queued for delete'))
+    ->setDescription(t('A flag that specifies if the entity has been queued for delete on next cron run.'))
+    ->setRevisionable(FALSE)
+    ->setTranslatable(FALSE)
+    ->setRequired(FALSE)
+    ->setDefaultValue(FALSE)
+    ->setInitialValue(FALSE);
+  $definition_update_manager->installFieldStorageDefinition('queued_for_delete', 'workspace', 'multiversion', $queued_for_delete);
+}

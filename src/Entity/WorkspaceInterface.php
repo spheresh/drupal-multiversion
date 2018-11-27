@@ -51,4 +51,20 @@ interface WorkspaceInterface extends ContentEntityInterface, EntityChangedInterf
    */
   public function isDefaultWorkspace();
 
+  /**
+   * Specifies that the workspace is queued for delete on next cron run.
+   *
+   * @param bool $queued
+   *
+   * @return mixed
+   */
+  public function setQueuedForDelete($queued = TRUE);
+
+  /**
+   * Returns the queued for delete flag.
+   *
+   * @return bool
+   */
+  public function getQueuedForDelete();
+
 }
