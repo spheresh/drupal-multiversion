@@ -108,6 +108,7 @@ function multiversion_entity_type_alter(array &$entity_types) {
           break;
 
         case 'entity_test_rev':
+        case 'entity_test_local':
           $entity_type->setClass('Drupal\multiversion\Entity\EntityTestRev');
           if (in_array($original_storage_class, [NULL, 'Drupal\Core\Entity\Sql\SqlContentEntityStorage'])) {
             $entity_type->setHandlerClass('storage', "$namespace\\ContentEntityStorage");
@@ -156,15 +157,17 @@ function multiversion_entity_base_field_info(EntityTypeInterface $entity_type) {
     $published_key = $entity_type->getKey('published') ?: 'status';
 
     // Add the status field.
-    $fields[$published_key] = BaseFieldDefinition::create('boolean')
-      ->setName($published_key)
-      ->setTargetEntityTypeId($entity_type->id())
-      ->setTargetBundle(NULL)
-      ->setLabel(t('Publishing status'))
-      ->setDescription(t('A boolean indicating the published state.'))
-      ->setRevisionable(TRUE)
-      ->setTranslatable(TRUE)
-      ->setDefaultValue(TRUE);
+    if (empty($fields[$published_key])) {
+      $fields[$published_key] = BaseFieldDefinition::create('boolean')
+        ->setName($published_key)
+        ->setTargetEntityTypeId($entity_type->id())
+        ->setTargetBundle(NULL)
+        ->setLabel(t('Publishing status'))
+        ->setDescription(t('A boolean indicating the published state.'))
+        ->setRevisionable(TRUE)
+        ->setTranslatable(TRUE)
+        ->setDefaultValue(TRUE);
+    }
 
     $fields['_deleted'] = BaseFieldDefinition::create('boolean')
       ->setName('_deleted')
