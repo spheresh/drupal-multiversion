@@ -108,7 +108,6 @@ function multiversion_entity_type_alter(array &$entity_types) {
           break;
 
         case 'entity_test_rev':
-        case 'entity_test_local':
           $entity_type->setClass('Drupal\multiversion\Entity\EntityTestRev');
           if (in_array($original_storage_class, [NULL, 'Drupal\Core\Entity\Sql\SqlContentEntityStorage'])) {
             $entity_type->setHandlerClass('storage', "$namespace\\ContentEntityStorage");

@@ -10,6 +10,7 @@ use Drupal\entity_reference_revisions\EntityReferenceRevisionsFieldItemList;
 use Drupal\path\Plugin\Field\FieldType\PathFieldItemList;
 use Drupal\pathauto\PathautoState;
 use Drupal\workspaces\Entity\Workspace;
+use Drupal\workspaces\WorkspaceInterface;
 
 trait ContentEntityStorageTrait {
 
@@ -246,7 +247,16 @@ trait ContentEntityStorageTrait {
     }
 
     try {
-      $save_result = parent::save($entity);
+      /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspaces_manager */
+      $workspaces_manager = \Drupal::service('workspaces.manager');
+      if ($local) {
+        $save_result = $workspaces_manager->executeInWorkspace(WorkspaceInterface::DEFAULT_WORKSPACE, function () use ($entity) {
+          return parent::save($entity);
+        });
+      }
+      else {
+        $save_result = parent::save($entity);
+      }
 
       // Update indexes.
       $this->indexEntity($entity);
