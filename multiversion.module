@@ -85,6 +85,11 @@ function multiversion_entity_type_alter(array &$entity_types) {
           $entity_type->setHandlerClass('storage', "$namespace\\MediaStorage");
           break;
 
+        case 'paragraph':
+          $entity_type->setClass('Drupal\multiversion\Entity\Paragraph');
+          $entity_type->setHandlerClass('storage', "$namespace\\ContentEntityStorage");
+          break;
+
         case 'poll':
           $entity_type->setHandlerClass('storage', "$namespace\\PollStorage");
           break;
