@@ -1,5 +1,6 @@
 <?php
 
+use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -618,6 +619,20 @@ function multiversion_preprocess_html(&$variables) {
     // Add a new body class with the active workspace.
     $variables['attributes']['class'][] = 'workspace-' . $machine_name;
   }
+}
+
+/**
+ * Implements hook_block_view_BASE_BLOCK_ID_alter().
+ */
+function multiversion_block_view_help_block_alter(array &$build, BlockPluginInterface $block) {
+  $build['#pre_render'][] = '_multiversion_help_block_prerender';
+}
+
+function _multiversion_help_block_prerender(array $build) {
+  $build['content'] = [
+    '#markup' => '<p>' . t('Revisions allow you to track differences between multiple versions of your content.') . '</p>',
+  ];
+  return $build;
 }
 
 /**
