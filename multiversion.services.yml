@@ -133,3 +133,7 @@ services:
     tags:
       - { name: event_subscriber }
       - { name: backend_overridable }
+  multiversion.node_revision_route_subscriber:
+    class: Drupal\multiversion\EventSubscriber\NodeRevisionRouteSubscriber
+    tags:
+      - { name: event_subscriber }
