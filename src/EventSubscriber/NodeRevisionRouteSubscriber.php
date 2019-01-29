@@ -19,8 +19,14 @@ class NodeRevisionRouteSubscriber extends RouteSubscriberBase {
    *   The route collection for adding routes.
    */
   protected function alterRoutes(RouteCollection $collection) {
-    if ($route = $collection->get('entity.node.version_history')) {
-      $route->setDefault('_controller', MultiversionNodeController::class . '::revisionOverview');
+    // When Diff module is installed we don't need to use
+    // MultiversionNodeController::revisionOverview, because we alter the
+    // 'revision_overview_form' for in that case.
+    // @see multiversion_form_revision_overview_form_alter().
+    if (!\Drupal::moduleHandler()->moduleExists('diff')) {
+      if ($route = $collection->get('entity.node.version_history')) {
+        $route->setDefault('_controller', MultiversionNodeController::class . '::revisionOverview');
+      }
     }
   }
 
