@@ -381,8 +381,14 @@ trait ContentEntityStorageTrait {
     $revisions = $entity->_rev->revisions;
     list($i) = explode('-', $rev);
     $count_revisions = count($revisions);
+    $parent_rev = $rev;
     if ($count_revisions > $i && $entity->isNew()) {
       $i = $count_revisions + 1;
+    }
+    // When reverting revisions.
+    elseif (!empty($entity->is_reverting)) {
+      $i = $count_revisions;
+      $parent_rev = !empty($revisions[0]) ? $i . '-' . $revisions[0] : $rev;
     }
 
     // This is a regular local save operation and a new revision token should be
@@ -391,7 +397,7 @@ trait ContentEntityStorageTrait {
     if ($entity->_rev->new_edit || $entity->_rev->is_stub) {
       // If this is the first revision it means that there's no parent.
       // By definition the existing revision value is the parent revision.
-      $parent_rev = $i == 0 ? 0 : $rev;
+      $parent_rev = $i == 0 ? 0 : $parent_rev;
       // Only generate a new revision if this is not a stub entity. This will
       // ensure that stub entities remain with the default value (0) to make it
       // clear on a storage level that this is a stub and not a "real" revision.
