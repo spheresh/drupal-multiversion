@@ -33,4 +33,31 @@ interface EntityReferencesManagerInterface {
    */
   public function getReferencedEntitiesIds(EntityInterface $entity);
 
+  /**
+   * Returns all entities that reference to the specified entity.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *
+   * @return mixed
+   */
+  public function getParentEntities(EntityInterface $entity);
+
+  /**
+   * Returns UUIDs of all the entities that reference to the specified entity.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *
+   * @return mixed
+   */
+  public function getParentEntitiesUuids(EntityInterface $entity);
+
+  /**
+   * Returns IDs of all the entities that reference to the specified entity.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *
+   * @return mixed
+   */
+  public function getParentEntitiesIds(EntityInterface $entity);
+
 }

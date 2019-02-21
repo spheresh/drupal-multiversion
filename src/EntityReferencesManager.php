@@ -7,6 +7,7 @@ use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface;
 
 class EntityReferencesManager implements EntityReferencesManagerInterface {
 
@@ -74,11 +75,79 @@ class EntityReferencesManager implements EntityReferencesManagerInterface {
    * {@inheritdoc}
    */
   public function getReferencedEntitiesIds(EntityInterface $entity) {
-    $referenced_revisions = [];
+    $referenced_ids = [];
     foreach ($this->getMultiversionableReferencedEntities($entity) as $reference) {
-      $referenced_revisions[$reference->getEntityTypeId()][$reference->getRevisionId()] = (int) $reference->id();
+      $referenced_ids[$reference->getEntityTypeId()][] = (int) $reference->id();
     }
-    return $referenced_revisions;
+    return $referenced_ids;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getParentEntities(EntityInterface $entity) {
+    $entity_id = $entity->id();
+    $entity_type = $entity->getEntityType();
+    $entity_type_id = $entity_type->id();
+    $parents = [];
+    $definitions = $this->entityTypeManager->getDefinitions();
+    foreach ($definitions as $definition_id => $definition) {
+      if (!is_subclass_of($definition->getStorageClass(), ContentEntityStorageInterface::class)) {
+        continue;
+      }
+      $storage = $this->entityTypeManager->getStorage($definition_id);
+      $bundles = $this->entityTypeBundleInfo->getBundleInfo($definition_id);
+      foreach ($bundles as $bundle => $info) {
+        $field_definitions = $this->entityFieldManager->getFieldDefinitions($definition_id, $bundle);
+        foreach ($field_definitions as $field_definition) {
+          if ($field_definition->getType() === 'entity_reference') {
+            if ($field_definition->getSetting('target_type') != $entity_type_id) {
+              continue;
+            }
+
+            // Possible match.
+            $matches = $storage->getQuery()
+              ->condition('type', $bundle)
+              ->condition($field_definition->getName(), $entity_id, 'IN')
+              ->execute();
+
+            if (empty($matches)) {
+              continue;
+            }
+
+            if (isset($parents[$definition_id])) {
+              $parents += $storage->loadMultiple(array_values($matches));
+            }
+            else {
+              $parents = $storage->loadMultiple(array_values($matches));
+            }
+          }
+        }
+      }
+    }
+    return $parents;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getParentEntitiesUuids(EntityInterface $entity) {
+    $parent_uuids = [];
+    foreach ($this->getParentEntities($entity) as $parent) {
+      $parent_uuids[] = $parent->uuid();
+    }
+    return $parent_uuids;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getParentEntitiesIds(EntityInterface $entity) {
+    $parent_ids = [];
+    foreach ($this->getParentEntities($entity) as $parent) {
+      $parent_ids[$parent->getEntityTypeId()][] = (int) $parent->id();
+    }
+    return $parent_ids;
   }
 
 }

@@ -142,7 +142,7 @@ class ReferencesLoadTest extends EntityKernelTestBase {
 
     foreach ($target_entities as $target) {
       $uuids[] = $target->uuid();
-      $ids[$this->referencedEntityType][$target->getRevisionId()] = (int) $target->id();
+      $ids[$this->referencedEntityType][] = (int) $target->id();
     }
     $referenced_uuids = $this->entityReferencesManager->getReferencedEntitiesUuids($entity);
     $this->assertEquals($uuids, $referenced_uuids);
@@ -164,11 +164,112 @@ class ReferencesLoadTest extends EntityKernelTestBase {
     ]);
     $node->save();
 
-    $ids['paragraph'][$paragraph->getRevisionId()] = (int) $paragraph->id();
+    $ids['paragraph'][] = (int) $paragraph->id();
     $referenced_uuids = $this->entityReferencesManager->getReferencedEntitiesUuids($node);
     $this->assertEquals([$paragraph->uuid()], $referenced_uuids);
     $referenced_ids = $this->entityReferencesManager->getReferencedEntitiesIds($node);
     $this->assertEquals($ids, $referenced_ids);
+  }
+
+  public function testParentsLoad() {
+    // Create three target entities.
+    $target_entities = [];
+    $reference_field = [];
+    for ($i = 0; $i < 3; $i++) {
+      $target_entity = $this->entityTypeManager
+        ->getStorage($this->referencedEntityType)
+        ->create(['type' => $this->bundle]);
+      $target_entity->save();
+      $target_entities[] = $target_entity;
+      $reference_field[]['target_id'] = $target_entity->id();
+    }
+
+    // Create the first parent entity and set all target entities as references.
+    $entity1 = $this->entityTypeManager
+      ->getStorage($this->entityType)
+      ->create([
+        'type' => $this->bundle,
+        $this->fieldName => $reference_field
+        ]);
+    $entity1->save();
+
+    unset($reference_field[0]);
+
+    // Create the second parent entity and set only two target entities as
+    // references.
+    $entity2 = $this->entityTypeManager
+      ->getStorage($this->entityType)
+      ->create([
+        'type' => $this->bundle,
+        $this->fieldName => $reference_field
+      ]);
+    $entity2->save();
+
+    unset($reference_field[1]);
+
+    // Create the third parent entity and set only one target entity as
+    // reference.
+    $entity3 = $this->entityTypeManager
+      ->getStorage($this->entityType)
+      ->create([
+        'type' => $this->bundle,
+        $this->fieldName => $reference_field
+      ]);
+    $entity3->save();
+
+    // First target entity should be referenced by one entity.
+    $parent_uuids = $this->entityReferencesManager->getParentEntitiesUuids($target_entities[0]);
+    $expected = [
+      $entity1->uuid(),
+    ];
+    $this->assertEquals($expected, $parent_uuids);
+
+    // Second target entity should be referenced by two entities.
+    $parent_uuids = $this->entityReferencesManager->getParentEntitiesUuids($target_entities[1]);
+    $expected = [
+      $entity1->uuid(),
+      $entity2->uuid(),
+    ];
+    $this->assertEquals($expected, $parent_uuids);
+
+    // Third target entity should be referenced by three entities.
+    $parent_uuids = $this->entityReferencesManager->getParentEntitiesUuids($target_entities[2]);
+    $expected = [
+      $entity1->uuid(),
+      $entity2->uuid(),
+      $entity3->uuid(),
+    ];
+    $this->assertEquals($expected, $parent_uuids);
+
+    // First target entity should be referenced by one entity.
+    $parent_uuids = $this->entityReferencesManager->getParentEntitiesIds($target_entities[0]);
+    $expected = [
+      $this->entityType => [
+        $entity1->id(),
+      ],
+    ];
+    $this->assertEquals($expected, $parent_uuids);
+
+    // Second target entity should be referenced by two entities.
+    $parent_uuids = $this->entityReferencesManager->getParentEntitiesIds($target_entities[1]);
+    $expected = [
+      $this->entityType => [
+        $entity1->id(),
+        $entity2->id(),
+      ],
+    ];
+    $this->assertEquals($expected, $parent_uuids);
+
+    // Third target entity should be referenced by three entities.
+    $parent_uuids = $this->entityReferencesManager->getParentEntitiesIds($target_entities[2]);
+    $expected = [
+      $this->entityType => [
+        $entity1->id(),
+        $entity2->id(),
+        $entity3->id(),
+      ],
+    ];
+    $this->assertEquals($expected, $parent_uuids);
   }
 
 }
