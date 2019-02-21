@@ -46,9 +46,7 @@ class EntityReferencesManager implements EntityReferencesManagerInterface {
   }
 
   /**
-   * @param \Drupal\Core\Entity\EntityInterface $entity
-   *
-   * @return array
+   * {@inheritdoc}
    */
   public function getMultiversionableReferencedEntities(EntityInterface $entity) {
     $references = $entity->referencedEntities();
@@ -61,6 +59,9 @@ class EntityReferencesManager implements EntityReferencesManagerInterface {
     return $references;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function getReferencedEntitiesUuids(EntityInterface $entity) {
     $referenced_uuids = [];
     foreach ($this->getMultiversionableReferencedEntities($entity) as $reference) {
@@ -69,6 +70,9 @@ class EntityReferencesManager implements EntityReferencesManagerInterface {
     return $referenced_uuids;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function getReferencedEntitiesIds(EntityInterface $entity) {
     $referenced_revisions = [];
     foreach ($this->getMultiversionableReferencedEntities($entity) as $reference) {
