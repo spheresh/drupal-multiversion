@@ -8,6 +8,13 @@ use Drupal\multiversion\Entity\Workspace;
 use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
 use Drupal\Tests\SchemaCheckTestTrait;
 
+/**
+ * Test for paragraphs integration.
+ *
+ * @requires module paragraphs
+ * @requires module entity_reference_revisions
+ * @group multiversion
+ */
 class ReferencesLoadTest extends EntityKernelTestBase {
 
   use SchemaCheckTestTrait;
