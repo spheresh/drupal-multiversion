@@ -9,24 +9,37 @@ use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface;
 
+/**
+ * Multiversion entity references manager.
+ *
+ * @package Drupal\multiversion
+ */
 class EntityReferencesManager implements EntityReferencesManagerInterface {
 
   /**
+   * The entity type manager.
+   *
    * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
   protected $entityTypeManager;
 
   /**
+   * The entity field manager.
+   *
    * @var \Drupal\Core\Entity\EntityFieldManagerInterface
    */
   protected $entityFieldManager;
 
   /**
+   * The entity type bundle info.
+   *
    * @var \Drupal\Core\Entity\EntityTypeBundleInfoInterface
    */
   protected $entityTypeBundleInfo;
 
   /**
+   * The multiversion manager.
+   *
    * @var \Drupal\multiversion\MultiversionManagerInterface
    */
   protected $multiversionManager;
@@ -35,9 +48,13 @@ class EntityReferencesManager implements EntityReferencesManagerInterface {
    * EntityReferencesManager constructor.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
    * @param \Drupal\multiversion\MultiversionManagerInterface $multiversion_manager
+   *   The multiversion manager.
    * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
+   *   The entity field manager.
    * @param \Drupal\Core\Entity\EntityTypeBundleInfoInterface $entity_type_bundle_info
+   *   The entity type bundle info.
    */
   public function __construct(EntityTypeManagerInterface $entity_type_manager, MultiversionManagerInterface $multiversion_manager, EntityFieldManagerInterface $entity_field_manager, EntityTypeBundleInfoInterface $entity_type_bundle_info) {
     $this->entityTypeManager = $entity_type_manager;
