@@ -56,11 +56,18 @@ class ReferencesLoadTest extends EntityKernelTestBase {
   protected $referencedEntityType = 'entity_test_rev';
 
   /**
-   * The name of the field used in this test.
+   * The name of the first field used in this test.
    *
    * @var string
    */
-  protected $fieldName = 'field_test';
+  protected $fieldName1 = 'field_test_1';
+
+  /**
+   * The name of the second field used in this test.
+   *
+   * @var string
+   */
+  protected $fieldName2 = 'field_test_2';
 
   /**
    * The bundle used in this test.
@@ -113,12 +120,23 @@ class ReferencesLoadTest extends EntityKernelTestBase {
     $this->nodeStorage = $this->entityTypeManager->getStorage('node');
     $this->paragraphStorage = $this->entityTypeManager->getStorage('paragraph');
     $this->entityReferencesManager = $this->container->get('multiversion.entity_references.manager');
-    // Create a field.
+    // Create the first field.
     $this->createEntityReferenceField(
       $this->entityType,
       $this->bundle,
-      $this->fieldName,
-      'Field test',
+      $this->fieldName1,
+      'Field test 1',
+      $this->referencedEntityType,
+      'default',
+      ['target_bundles' => [$this->bundle]],
+      FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED
+    );
+    // Create the second field.
+    $this->createEntityReferenceField(
+      $this->entityType,
+      $this->bundle,
+      $this->fieldName2,
+      'Field test 2',
       $this->referencedEntityType,
       'default',
       ['target_bundles' => [$this->bundle]],
@@ -132,25 +150,44 @@ class ReferencesLoadTest extends EntityKernelTestBase {
       ->getStorage($this->entityType)
       ->create(['type' => $this->bundle]);
 
-    // Create three target entities and attach them to parent field.
-    $target_entities = [];
-    $reference_field = [];
+    // Create three target entities and attach them to the first parent field.
+    $target_entities1 = [];
+    $reference_field1 = [];
     for ($i = 0; $i < 3; $i++) {
       $target_entity = $this->entityTypeManager
         ->getStorage($this->referencedEntityType)
         ->create(['type' => $this->bundle]);
       $target_entity->save();
-      $target_entities[] = $target_entity;
-      $reference_field[]['target_id'] = $target_entity->id();
+      $target_entities1[] = $target_entity;
+      $reference_field1[]['target_id'] = $target_entity->id();
     }
     // Set the field value.
-    $entity->{$this->fieldName}->setValue($reference_field);
+    $entity->{$this->fieldName1}->setValue($reference_field1);
+
+    // Create four target entities and attach them to the second parent field.
+    $target_entities2 = [];
+    $reference_field2 = [];
+    for ($i = 0; $i < 4; $i++) {
+      $target_entity = $this->entityTypeManager
+        ->getStorage($this->referencedEntityType)
+        ->create(['type' => $this->bundle]);
+      $target_entity->save();
+      $target_entities2[] = $target_entity;
+      $reference_field2[]['target_id'] = $target_entity->id();
+    }
+    // Set the field value.
+    $entity->{$this->fieldName2}->setValue($reference_field2);
     $entity->save();
 
-    foreach ($target_entities as $target) {
+    foreach ($target_entities1 as $target) {
       $uuids[] = $target->uuid();
       $ids[$this->referencedEntityType][] = (int) $target->id();
     }
+    foreach ($target_entities2 as $target) {
+      $uuids[] = $target->uuid();
+      $ids[$this->referencedEntityType][] = (int) $target->id();
+    }
+
     $referenced_uuids = $this->entityReferencesManager->getReferencedEntitiesUuids($entity);
     $this->assertEquals($uuids, $referenced_uuids);
     $referenced_ids = $this->entityReferencesManager->getReferencedEntitiesIds($entity);
@@ -158,22 +195,32 @@ class ReferencesLoadTest extends EntityKernelTestBase {
   }
 
   public function testParagraphReferencesLoad() {
-    $paragraph = $this->paragraphStorage->create([
+    $paragraph1 = $this->paragraphStorage->create([
       'title' => 'Test paragraph',
       'type' => 'test_paragraph_type',
       'field_test_field' => 'First revision title',
     ]);
-    $paragraph->save();
+    $paragraph1->save();
+    $paragraph2 = $this->paragraphStorage->create([
+      'title' => 'Test paragraph',
+      'type' => 'test_paragraph_type',
+      'field_test_field' => 'First revision title',
+    ]);
+    $paragraph2->save();
     $node = $this->nodeStorage->create([
       'type' => 'paragraphs_node_type',
       'title' => 'Test node',
-      'field_paragraph' => $paragraph,
+      'field_paragraph' => [
+        $paragraph1,
+        $paragraph2,
+      ]
     ]);
     $node->save();
 
-    $ids['paragraph'][] = (int) $paragraph->id();
+    $ids['paragraph'][] = (int) $paragraph1->id();
+    $ids['paragraph'][] = (int) $paragraph2->id();
     $referenced_uuids = $this->entityReferencesManager->getReferencedEntitiesUuids($node);
-    $this->assertEquals([$paragraph->uuid()], $referenced_uuids);
+    $this->assertEquals([$paragraph1->uuid(), $paragraph2->uuid()], $referenced_uuids);
     $referenced_ids = $this->entityReferencesManager->getReferencedEntitiesIds($node);
     $this->assertEquals($ids, $referenced_ids);
   }
@@ -196,7 +243,7 @@ class ReferencesLoadTest extends EntityKernelTestBase {
       ->getStorage($this->entityType)
       ->create([
         'type' => $this->bundle,
-        $this->fieldName => $reference_field
+        $this->fieldName1 => $reference_field
         ]);
     $entity1->save();
 
@@ -208,7 +255,7 @@ class ReferencesLoadTest extends EntityKernelTestBase {
       ->getStorage($this->entityType)
       ->create([
         'type' => $this->bundle,
-        $this->fieldName => $reference_field
+        $this->fieldName1 => $reference_field
       ]);
     $entity2->save();
 
@@ -220,7 +267,7 @@ class ReferencesLoadTest extends EntityKernelTestBase {
       ->getStorage($this->entityType)
       ->create([
         'type' => $this->bundle,
-        $this->fieldName => $reference_field
+        $this->fieldName1 => $reference_field
       ]);
     $entity3->save();
 
@@ -249,26 +296,26 @@ class ReferencesLoadTest extends EntityKernelTestBase {
     $this->assertEquals($expected, $parent_uuids);
 
     // First target entity should be referenced by one entity.
-    $parent_uuids = $this->entityReferencesManager->getParentEntitiesIds($target_entities[0]);
+    $parent_ids = $this->entityReferencesManager->getParentEntitiesIds($target_entities[0]);
     $expected = [
       $this->entityType => [
         $entity1->id(),
       ],
     ];
-    $this->assertEquals($expected, $parent_uuids);
+    $this->assertEquals($expected, $parent_ids);
 
     // Second target entity should be referenced by two entities.
-    $parent_uuids = $this->entityReferencesManager->getParentEntitiesIds($target_entities[1]);
+    $parent_ids = $this->entityReferencesManager->getParentEntitiesIds($target_entities[1]);
     $expected = [
       $this->entityType => [
         $entity1->id(),
         $entity2->id(),
       ],
     ];
-    $this->assertEquals($expected, $parent_uuids);
+    $this->assertEquals($expected, $parent_ids);
 
     // Third target entity should be referenced by three entities.
-    $parent_uuids = $this->entityReferencesManager->getParentEntitiesIds($target_entities[2]);
+    $parent_ids = $this->entityReferencesManager->getParentEntitiesIds($target_entities[2]);
     $expected = [
       $this->entityType => [
         $entity1->id(),
@@ -276,7 +323,113 @@ class ReferencesLoadTest extends EntityKernelTestBase {
         $entity3->id(),
       ],
     ];
+    $this->assertEquals($expected, $parent_ids);
+  }
+
+  public function testParagraphParentsLoad() {
+    $paragraph1 = $this->paragraphStorage->create([
+      'title' => 'Test paragraph',
+      'type' => 'test_paragraph_type',
+      'field_test_field' => 'First revision title',
+    ]);
+    $paragraph1->save();
+    $paragraph2 = $this->paragraphStorage->create([
+      'title' => 'Test paragraph',
+      'type' => 'test_paragraph_type',
+      'field_test_field' => 'First revision title',
+    ]);
+    $paragraph2->save();
+
+    $node1 = $this->nodeStorage->create([
+      'type' => 'paragraphs_node_type',
+      'title' => 'Test node',
+      'field_paragraph' => [
+        $paragraph1,
+        $paragraph2,
+      ]
+    ]);
+    $node1->save();
+
+    $node2 = $this->nodeStorage->create([
+      'type' => 'paragraphs_node_type',
+      'title' => 'Test node',
+      'field_paragraph' => [
+        $paragraph1,
+      ]
+    ]);
+    $node2->save();
+
+    $node3 = $this->nodeStorage->create([
+      'type' => 'paragraphs_node_type',
+      'title' => 'Test node',
+      'field_paragraph' => [
+        $paragraph2,
+      ]
+    ]);
+    $node3->save();
+
+    $node4 = $this->nodeStorage->create([
+      'type' => 'paragraphs_node_type',
+      'title' => 'Test node',
+      'field_paragraph' => [
+        $paragraph1,
+        $paragraph2,
+      ]
+    ]);
+    $node4->save();
+
+    $node5 = $this->nodeStorage->create([
+      'type' => 'paragraphs_node_type',
+      'title' => 'Test node',
+      'field_paragraph' => [
+        $paragraph1,
+      ]
+    ]);
+    $node5->save();
+
+    // First target paragraph should be referenced by four entities:
+    // node1, node2 and node4, node5.
+    $parent_uuids = $this->entityReferencesManager->getParentEntitiesUuids($paragraph1);
+    $expected = [
+      $node1->uuid(),
+      $node2->uuid(),
+      $node4->uuid(),
+      $node5->uuid(),
+    ];
     $this->assertEquals($expected, $parent_uuids);
+
+    // Second target paragraph should be referenced by three entities:
+    // node1, node2 and node4.
+    $parent_uuids = $this->entityReferencesManager->getParentEntitiesUuids($paragraph2);
+    $expected = [
+      $node1->uuid(),
+      $node3->uuid(),
+      $node4->uuid(),
+    ];
+    $this->assertEquals($expected, $parent_uuids);
+
+    // First target paragraph should be referenced by four entities.
+    $parent_ids = $this->entityReferencesManager->getParentEntitiesIds($paragraph1);
+    $expected = [
+      'node' => [
+        $node1->id(),
+        $node2->id(),
+        $node4->id(),
+        $node5->id(),
+      ],
+    ];
+    $this->assertEquals($expected, $parent_ids);
+
+    // Second target paragraph should be referenced by three entities.
+    $parent_ids = $this->entityReferencesManager->getParentEntitiesIds($paragraph2);
+    $expected = [
+      'node' => [
+        $node1->id(),
+        $node3->id(),
+        $node4->id(),
+      ],
+    ];
+    $this->assertEquals($expected, $parent_ids);
   }
 
 }

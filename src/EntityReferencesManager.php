@@ -100,7 +100,8 @@ class EntityReferencesManager implements EntityReferencesManagerInterface {
       foreach ($bundles as $bundle => $info) {
         $field_definitions = $this->entityFieldManager->getFieldDefinitions($definition_id, $bundle);
         foreach ($field_definitions as $field_definition) {
-          if ($field_definition->getType() === 'entity_reference') {
+          if ($field_definition->getType() === 'entity_reference'
+            || $field_definition->getType() === 'entity_reference_revisions') {
             if ($field_definition->getSetting('target_type') != $entity_type_id) {
               continue;
             }
