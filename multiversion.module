@@ -302,10 +302,16 @@ function multiversion_paragraph_update(EntityInterface $entity) {
   // replication).
   $parent = $entity->getParentEntity();
   $entity_revision_parent_field_name = $entity->getEntityType()->get('entity_revision_parent_field_name_field');
-  if ($parent instanceof ContentEntityInterface
-    && !empty($entity->workspace)
-    && $entity_revision_parent_field_name
-    && !empty($entity->{$entity_revision_parent_field_name}->value)) {
+
+  if ($parent instanceof ContentEntityInterface &&
+    !empty($entity->workspace) &&
+    $entity_revision_parent_field_name &&
+    !empty($entity->{$entity_revision_parent_field_name}->value) &&
+    (
+      $entity->_rev->is_stub ||
+      (!empty($entity->original) && $entity->original->_rev->is_stub)
+    )
+  ) {
     $parent_field_name = $entity->{$entity_revision_parent_field_name}->value;
     $storage = \Drupal::entityTypeManager()->getStorage($parent->getEntityTypeId());
     $storage->resetCache([$parent->id()]);
