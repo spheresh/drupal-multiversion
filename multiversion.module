@@ -614,6 +614,15 @@ function multiversion_modules_installed($modules) {
 }
 
 /**
+ * Implements hook_search_plugin_alter().
+ */
+function multiversion_search_plugin_alter(array &$definitions) {
+  if (isset($definitions['node_search'])) {
+    $definitions['node_search']['class'] = 'Drupal\multiversion\Entity\Search\NodeSearch';
+  }
+}
+
+/**
  * Implements hook_preprocess_HOOK().
  *
  * Adds the workspace as a class to the body.
