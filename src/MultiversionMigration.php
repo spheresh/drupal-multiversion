@@ -133,9 +133,7 @@ class MultiversionMigration implements MultiversionMigrationInterface {
    */
   public function emptyOldStorage(EntityStorageInterface $storage) {
     if ($storage instanceof ContentEntityStorageInterface) {
-      $original_storage = $storage->getOriginalStorage();
-      $entities = $original_storage->loadMultiple();
-      $original_storage->delete($entities);
+      $storage->truncate();
     }
     else {
       $entities = $storage->loadMultiple();

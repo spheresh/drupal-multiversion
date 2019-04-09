@@ -493,6 +493,28 @@ trait ContentEntityStorageTrait {
   }
 
   /**
+   * Truncate all related tables to entity type.
+   *
+   * This function should be called to avoid calling pre-delete/delete hooks.
+   *
+   * Usage example:
+   * @code
+   * // For some specific content types, we are still able to use
+   * // a `purge` or `delete` function.
+   * if(in_array($this->getEntityTypeId(),['redirect'])) {
+   *   $this->purge($entities);
+   * }
+   * @endcode
+   *
+   * @param \Drupal\Core\Entity\EntityInterface[]|NULL $entities
+   */
+  public function truncate(array $entities = NULL) {
+    foreach ($this->getTableMapping()->getTableNames() as $table) {
+      $this->database->truncate($table)->execute();
+    }
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function resetCache(array $ids = NULL) {
