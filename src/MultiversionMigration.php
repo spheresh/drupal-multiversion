@@ -130,6 +130,17 @@ class MultiversionMigration implements MultiversionMigrationInterface {
 
   /**
    * {@inheritdoc}
+   *
+   * Usage example:
+   * @code
+   * // For some specific content types, we are still able to use
+   * // a `purge` or `delete` function.
+   * if (in_array($this->getEntityTypeId(), ['replication_log'])) {
+   *   $original_storage = $storage->getOriginalStorage();
+   *   $entities = $original_storage->loadMultiple();
+   *   $this->purge($entities);
+   * }
+   * @endcode
    */
   public function emptyOldStorage(EntityStorageInterface $storage) {
     if ($storage instanceof ContentEntityStorageInterface) {

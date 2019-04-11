@@ -39,7 +39,7 @@ interface ContentEntityStorageInterface extends EntityStorageInterface {
    *
    * @param \Drupal\Core\Entity\EntityInterface[]|NULL $entities
    */
-  public function truncate(array $entities = NULL);
+  public function truncate();
 
   /**
    * Save the given entity without forcing a new revision.
