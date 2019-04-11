@@ -5,7 +5,6 @@ namespace Drupal\multiversion;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
-use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -13,10 +12,12 @@ use Drupal\Core\State\StateInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Database\Connection;
-use Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface;
+use Drupal\multiversion\Event\MultiversionManagerEvent;
+use Drupal\multiversion\Event\MultiversionManagerEvents;
 use Drupal\multiversion\Workspace\WorkspaceManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareTrait;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Serializer\Serializer;
 
 class MultiversionManager implements MultiversionManagerInterface, ContainerAwareInterface {
@@ -73,6 +74,11 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
   protected $lastSequenceId;
 
   /**
+   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
+   */
+  protected $eventDispatcher;
+
+  /**
    * @param \Drupal\multiversion\Workspace\WorkspaceManagerInterface $workspace_manager
    * @param \Symfony\Component\Serializer\Serializer $serializer
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
@@ -82,7 +88,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
    * @param \Drupal\Core\Database\Connection $connection
    * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
    */
-  public function __construct(WorkspaceManagerInterface $workspace_manager, Serializer $serializer, EntityTypeManagerInterface $entity_type_manager, StateInterface $state, LanguageManagerInterface $language_manager, CacheBackendInterface $cache, Connection $connection, EntityFieldManagerInterface $entity_field_manager) {
+  public function __construct(WorkspaceManagerInterface $workspace_manager, Serializer $serializer, EntityTypeManagerInterface $entity_type_manager, StateInterface $state, LanguageManagerInterface $language_manager, CacheBackendInterface $cache, Connection $connection, EntityFieldManagerInterface $entity_field_manager, EventDispatcherInterface $event_dispatcher) {
     $this->workspaceManager = $workspace_manager;
     $this->serializer = $serializer;
     $this->entityTypeManager = $entity_type_manager;
@@ -91,6 +97,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     $this->cache = $cache;
     $this->connection = $connection;
     $this->entityFieldManager = $entity_field_manager;
+    $this->eventDispatcher = $event_dispatcher;
   }
 
   /**
@@ -255,6 +262,9 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     }
     $migration = $this->createMigration();
     $migration->installDependencies();
+
+    // @TODO Probably, add event dispatcher same as disableEntityTypes function approach.
+
     $has_data = $this->prepareContentForMigration($entity_types, $migration);
 
     // Nasty workaround until {@link https://www.drupal.org/node/2549143 there
@@ -323,6 +333,8 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     // the Multiversion storage.
     $this->state->set('multiversion.migration_done', TRUE);
 
+    // @TODO Probably, add event dispatcher same as disableEntityTypes function approach.
+
     // Another nasty workaround because the cache is getting skewed somewhere.
     // And resetting the cache on the injected state service does not work.
     // Very strange.
@@ -338,6 +350,8 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     $entity_types = ($entity_types_to_disable !== NULL) ? $entity_types_to_disable : $this->getEnabledEntityTypes();
     $migration = $this->createMigration();
     $migration->installDependencies();
+    $this->eventDispatcher->dispatch(MultiversionManagerEvents::PREMIGRATE, new MultiversionManagerEvent($entity_types, $migration));
+
     $has_data = $this->prepareContentForMigration($entity_types, $migration);
 
     if (empty($entity_types)) {
@@ -415,6 +429,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     self::disableMigrationIsActive(FALSE);
 
     $this->state->delete('multiversion.migration_done');
+    $this->eventDispatcher->dispatch(MultiversionManagerEvents::POSTMIGRATE, new MultiversionManagerEvent($entity_types, $migration));
 
     return $this;
   }
