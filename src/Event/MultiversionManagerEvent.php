@@ -2,6 +2,7 @@
 
 namespace Drupal\multiversion\Event;
 
+use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\multiversion\MultiversionMigrationInterface;
 use Symfony\Component\EventDispatcher\Event;
 
@@ -10,6 +11,9 @@ use Symfony\Component\EventDispatcher\Event;
  */
 class MultiversionManagerEvent extends Event {
 
+  /**
+   * @var \Drupal\Core\Entity\ContentEntityTypeInterface[]
+   */
   protected $entityTypes;
 
   /**
@@ -26,4 +30,11 @@ class MultiversionManagerEvent extends Event {
     return $this->entityTypes;
   }
 
+
+  public function checkEntityType($entity_type) {
+    if (isset($this->entityTypes[$entity_type]) && $this->entityTypes[$entity_type] instanceof ContentEntityTypeInterface) {
+      return $this->entityTypes[$entity_type];
+    }
+    return FALSE;
+  }
 }
