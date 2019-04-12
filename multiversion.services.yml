@@ -138,7 +138,7 @@ services:
     tags:
       - { name: event_subscriber }
   multiversion.menu_content_link_migrate_subscriber:
-    class: Drupal\multiversion\EventSubscriber\MenuContentLinkMigrateSubscriber
+    class: Drupal\multiversion\EventSubscriber\MenuLinkContentMigrateSubscriber
     arguments: ['@database', '@plugin.manager.menu.link']
     tags:
       - { name: event_subscriber }

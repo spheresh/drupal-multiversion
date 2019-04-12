@@ -11,7 +11,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 /**
  * MenuContentLinkMigrateSubscriber class.
  */
-class MenuContentLinkMigrateSubscriber implements EventSubscriberInterface {
+class MenuLinkContentMigrateSubscriber implements EventSubscriberInterface {
 
   /**
    * @var \Drupal\Core\Database\Connection
