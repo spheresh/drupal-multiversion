@@ -234,6 +234,13 @@ class MultiversionMigration implements MultiversionMigrationInterface {
         if (!in_array($name, ['workspace', '_deleted', '_rev'])) {
           $map[$name] = $name;
         }
+
+        if ('menu_link_content' == $entity_type->id() && 'parent' == $name) {
+          $map[$name] = [
+            'plugin' => 'transform_parent_value',
+            'source' => $name,
+          ];
+        }
       }
     }
     return $map;

@@ -37,7 +37,8 @@ class MenuContentLinkMigrateSubscriber implements EventSubscriberInterface {
   public function onPostMigrateLinks(MultiversionManagerEvent $event) {
     if ($entity_type = $event->checkEntityType('menu_link_content')) {
       $data_table = $entity_type->getDataTable();
-      // @TODO Add description here.
+      // Set all menu links which should be rediscovered.
+      // @see \Drupal\menu_link_content\Plugin\Deriver\MenuLinkContentDeriver
       $this->connection->update($data_table)
         ->fields(['rediscover' => 1])
         ->execute();

@@ -725,19 +725,3 @@ function _multiversion_add_workspace_field_in_url_alias_table($install = FALSE) 
   }
 }
 
-/**
- * Implements hook__migrate_prepare_row().
- */
-function multiversion_migrate_prepare_row(Row $row, MigrateSourceInterface $source, MigrationInterface $migration) {
-  // @TODO Re-check this condition.
-  if('menu_link_content__to_tmp' == $migration->id()){
-    $parent_id = $row->getSourceProperty('parent');
-    if (!empty($parent_id)) {
-      $parent_id = explode(':', $parent_id);
-      if ($parent_id[0] === 'menu_link_content' && count($parent_id) === 3) {
-        unset($parent_id[2]);
-        $row->setSourceProperty('parent', implode(':', $parent_id));
-      }
-    }
-  }
-}
