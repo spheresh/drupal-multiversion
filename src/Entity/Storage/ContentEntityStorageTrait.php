@@ -500,7 +500,6 @@ trait ContentEntityStorageTrait {
    * @param \Drupal\Core\Entity\EntityInterface[]|NULL $entities
    */
   public function truncate() {
-
     foreach ($this->getTableMapping()->getTableNames() as $table) {
       $this->database->truncate($table)->execute();
     }

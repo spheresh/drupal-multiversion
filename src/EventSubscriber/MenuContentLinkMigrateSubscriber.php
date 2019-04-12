@@ -32,10 +32,10 @@ class MenuContentLinkMigrateSubscriber implements EventSubscriberInterface {
   }
 
   /**
-   * {@inheritdoc}
+   * A menu_tree database table should be rediscovered after enabling/disabling a menu_link_content entity.
    */
   public function onPostMigrateLinks(MultiversionManagerEvent $event) {
-    if ($entity_type = $event->checkEntityType('menu_link_content')) {
+    if ($entity_type = $event->getEntityType('menu_link_content')) {
       $data_table = $entity_type->getDataTable();
       // Set all menu links which should be rediscovered.
       // @see \Drupal\menu_link_content\Plugin\Deriver\MenuLinkContentDeriver
@@ -50,8 +50,7 @@ class MenuContentLinkMigrateSubscriber implements EventSubscriberInterface {
    * {@inheritdoc}
    */
   public static function getSubscribedEvents() {
-    $events[MultiversionManagerEvents::POSTMIGRATE] = ['onPostMigrateLinks'];
-    return $events;
+    return [MultiversionManagerEvents::POSTMIGRATE => 'onPostMigrateLinks'];
   }
 
 }

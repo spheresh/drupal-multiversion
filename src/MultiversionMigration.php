@@ -237,7 +237,7 @@ class MultiversionMigration implements MultiversionMigrationInterface {
 
         if ('menu_link_content' == $entity_type->id() && 'parent' == $name) {
           $map[$name] = [
-            'plugin' => 'transform_parent_value',
+            'plugin' => 'multiversion_migrate_menu_link_content_parent',
             'source' => $name,
           ];
         }

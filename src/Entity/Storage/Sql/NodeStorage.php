@@ -82,7 +82,6 @@ class NodeStorage extends CoreNodeStorage implements ContentEntityStorageInterfa
    */
   public function truncate() {
     $this->truncateEntities();
-
     /* @var \Drupal\node\NodeAccessControlHandlerInterface $access_control_handler */
     $access_control_handler = $this->entityManager->getAccessControlHandler('node');
     $access_control_handler->deleteGrants();

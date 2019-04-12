@@ -26,15 +26,10 @@ class MultiversionManagerEvent extends Event {
   /**
    * {@inheritdoc}
    */
-  public function getEntityTypes() {
-    return $this->entityTypes;
-  }
-
-
-  public function checkEntityType($entity_type) {
+  public function getEntityType($entity_type) {
     if (isset($this->entityTypes[$entity_type]) && $this->entityTypes[$entity_type] instanceof ContentEntityTypeInterface) {
       return $this->entityTypes[$entity_type];
     }
-    return FALSE;
+    return NULL;
   }
 }

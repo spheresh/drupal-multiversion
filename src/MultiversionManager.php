@@ -263,7 +263,10 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     $migration = $this->createMigration();
     $migration->installDependencies();
 
-    // @TODO Probably, add event dispatcher same as disableEntityTypes function approach.
+    $this->eventDispatcher->dispatch(
+      MultiversionManagerEvents::PREMIGRATE,
+      new MultiversionManagerEvent($entity_types, $migration)
+    );
 
     $has_data = $this->prepareContentForMigration($entity_types, $migration);
 
@@ -333,7 +336,10 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     // the Multiversion storage.
     $this->state->set('multiversion.migration_done', TRUE);
 
-    // @TODO Probably, add event dispatcher same as disableEntityTypes function approach.
+    $this->eventDispatcher->dispatch(
+      MultiversionManagerEvents::POSTMIGRATE,
+      new MultiversionManagerEvent($entity_types, $migration)
+    );
 
     // Another nasty workaround because the cache is getting skewed somewhere.
     // And resetting the cache on the injected state service does not work.
@@ -350,7 +356,11 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     $entity_types = ($entity_types_to_disable !== NULL) ? $entity_types_to_disable : $this->getEnabledEntityTypes();
     $migration = $this->createMigration();
     $migration->installDependencies();
-    $this->eventDispatcher->dispatch(MultiversionManagerEvents::PREMIGRATE, new MultiversionManagerEvent($entity_types, $migration));
+
+    $this->eventDispatcher->dispatch(
+      MultiversionManagerEvents::PREMIGRATE,
+      new MultiversionManagerEvent($entity_types, $migration)
+    );
 
     $has_data = $this->prepareContentForMigration($entity_types, $migration);
 
@@ -429,7 +439,11 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     self::disableMigrationIsActive(FALSE);
 
     $this->state->delete('multiversion.migration_done');
-    $this->eventDispatcher->dispatch(MultiversionManagerEvents::POSTMIGRATE, new MultiversionManagerEvent($entity_types, $migration));
+
+    $this->eventDispatcher->dispatch(
+      MultiversionManagerEvents::POSTMIGRATE,
+      new MultiversionManagerEvent($entity_types, $migration)
+    );
 
     return $this;
   }
