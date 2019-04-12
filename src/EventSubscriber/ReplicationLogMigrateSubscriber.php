@@ -31,8 +31,7 @@ class ReplicationLogMigrateSubscriber implements EventSubscriberInterface {
    * {@inheritdoc}
    */
   public function onPreMigrateReplicationLog(MultiversionManagerEvent $event) {
-    $entity_types = $event->getEntityTypes();
-    if (isset($entity_types["replication_log"]) && $entity_types["replication_log"] instanceof ContentEntityTypeInterface) {
+    if ($entity_type = $event->checkEntityType('replication_log')) {
       $storage = $this->entityTypeManager->getStorage('replication_log');
       if ($storage instanceof ContentEntityStorage) {
         $original_storage = $storage->getOriginalStorage();

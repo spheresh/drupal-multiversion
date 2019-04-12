@@ -3,7 +3,6 @@
 namespace Drupal\multiversion\EventSubscriber;
 
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Menu\MenuLinkManagerInterface;
 use Drupal\multiversion\Event\MultiversionManagerEvent;
 use Drupal\multiversion\Event\MultiversionManagerEvents;
@@ -36,11 +35,10 @@ class MenuContentLinkMigrateSubscriber implements EventSubscriberInterface {
    * {@inheritdoc}
    */
   public function onPostMigrateLinks(MultiversionManagerEvent $event) {
-    $entity_types = $event->getEntityTypes();
-    if (isset($entity_types['menu_link_content']) && $entity_types['menu_link_content'] instanceof ContentEntityTypeInterface) {
-      $menu_link_content = $entity_types['menu_link_content'];
-      $table = $menu_link_content->getDataTable();
-      $this->connection->update($table)
+    if ($entity_type = $event->checkEntityType('menu_link_content')) {
+      $data_table = $entity_type->getDataTable();
+      // @TODO Add description here.
+      $this->connection->update($data_table)
         ->fields(['rediscover' => 1])
         ->execute();
       $this->menuLinkManager->rebuild();
