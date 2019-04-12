@@ -142,8 +142,3 @@ services:
     arguments: ['@database', '@plugin.manager.menu.link']
     tags:
       - { name: event_subscriber }
-  multiversion.replication_log_migrate_subscriber:
-    class: Drupal\multiversion\EventSubscriber\ReplicationLogMigrateSubscriber
-    arguments: ['@entity_type.manager']
-    tags:
-      - { name: event_subscriber }
