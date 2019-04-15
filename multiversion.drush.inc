@@ -113,7 +113,7 @@ function drush_multiversion_enable_entity_types() {
   if (empty($args)) {
     drush_log(dt('Entity types list argument is missing.'), LogLevel::ERROR);
   }
-  elseif ($entity_types = _drush_multiversion_get_entity_types($args)) {
+  elseif ($entity_types = _multiversion_get_entity_types($args)) {
     if(!drush_confirm(dt('Do you really want to continue?'))) {
       return drush_user_abort();
     }
@@ -145,7 +145,7 @@ function drush_multiversion_disable_entity_types() {
   if (empty($args)) {
     $args = \Drupal::config('multiversion.settings')->get('enabled_entity_types') ?: [];
     if (!drush_confirm(dt('Do you really want to disable all enabled entity types (!entity_types)?', [
-      '!entity_types' => implode(', ', array_keys(_drush_multiversion_get_entity_types($args))),
+      '!entity_types' => implode(', ', array_keys(_multiversion_get_entity_types($args))),
     ]))) {
       return drush_user_abort();
     }
@@ -155,17 +155,23 @@ function drush_multiversion_disable_entity_types() {
       return drush_user_abort();
     }
   }
-  if (!empty($args) && $entity_types = _drush_multiversion_get_entity_types($args)) {
+  if (empty($args)) {
+    drush_log(dt('Entity types list argument is missing.'), LogLevel::ERROR);
+  }
+  if (!empty($args) && $entity_types = _multiversion_get_entity_types($args)) {
     try {
-      \Drupal::service('multiversion.manager')->disableEntityTypes($entity_types);
-    }
-    catch (Exception $e) {
+      \Drupal::service('multiversion.manager')
+        ->disableEntityTypes($entity_types);
+    } catch (Exception $e) {
       drush_log($e->getMessage(), LogLevel::ERROR);
     }
   }
 }
 
-function _drush_multiversion_get_entity_types($entity_type_ids) {
+/**
+ * @todo move this function to module.
+ */
+function _multiversion_get_entity_types($entity_type_ids) {
   $entity_types = [];
   $manager = \Drupal::entityTypeManager();
   foreach ($entity_type_ids as $id) {
@@ -176,7 +182,7 @@ function _drush_multiversion_get_entity_types($entity_type_ids) {
       }
     }
     catch (Exception $e) {
-      drush_log($e->getMessage(), LogLevel::INFO);
+      // There is nothing to do needed.
     }
   }
 
