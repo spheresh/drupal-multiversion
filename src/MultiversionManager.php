@@ -2,16 +2,15 @@
 
 namespace Drupal\multiversion;
 
+use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\Core\State\StateInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
-use Drupal\Core\Cache\CacheBackendInterface;
-use Drupal\Core\Database\Connection;
+use Drupal\Core\State\StateInterface;
 use Drupal\multiversion\Event\MultiversionManagerEvent;
 use Drupal\multiversion\Event\MultiversionManagerEvents;
 use Drupal\multiversion\Workspace\WorkspaceManagerInterface;
@@ -362,7 +361,12 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
    * {@inheritdoc}
    */
   public function disableEntityTypes($entity_types_to_disable = NULL) {
-    $entity_types = ($entity_types_to_disable !== NULL) ? $entity_types_to_disable : $this->getEnabledEntityTypes();
+    $entity_types_to_disable = ($entity_types_to_disable !== NULL) ? $entity_types_to_disable : $this->getEnabledEntityTypes();
+
+    // Let's use the alternative syntax for the foreach cycle to simplify code review.
+    foreach ($entity_types_to_disable as $entity_type):
+
+    $entity_types = [$entity_type->id() => $entity_type];
     $migration = $this->createMigration();
     $migration->installDependencies();
 
@@ -377,36 +381,13 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       return $this;
     }
 
-    if ($entity_types_to_disable === NULL) {
-      // Uninstall field storage definitions provided by multiversion.
-      $this->entityTypeManager->clearCachedDefinitions();
-      $update_manager = \Drupal::entityDefinitionUpdateManager();
-      foreach ($this->entityTypeManager->getDefinitions() as $entity_type) {
-        if ($entity_type->isSubclassOf(FieldableEntityInterface::CLASS)) {
-          $entity_type_id = $entity_type->id();
-          $revision_key = $entity_type->getKey('revision');
-          /** @var \Drupal\Core\Entity\FieldableEntityStorageInterface $storage */
-          $storage = $this->entityTypeManager->getStorage($entity_type_id);
-          foreach ($this->entityFieldManager->getFieldStorageDefinitions($entity_type_id) as $storage_definition) {
-            // @todo We need to trigger field purging here.
-            //   See https://www.drupal.org/node/2282119.
-            if ($storage_definition->getProvider() == 'multiversion' && !$storage->countFieldData($storage_definition, TRUE) && $storage_definition->getName() != $revision_key) {
-              $update_manager->uninstallFieldStorageDefinition($storage_definition);
-            }
-          }
-        }
-      }
-    }
-
     $enabled_entity_types = \Drupal::config('multiversion.settings')->get('enabled_entity_types') ?: [];
     foreach ($entity_types as $entity_type_id => $entity_type) {
       if (($key = array_search($entity_type_id, $enabled_entity_types)) !== FALSE) {
         unset($enabled_entity_types[$key]);
       }
     }
-    if ($entity_types_to_disable === NULL) {
-      $enabled_entity_types = [];
-    }
+
     \Drupal::configFactory()
       ->getEditable('multiversion.settings')
       ->set('enabled_entity_types', $enabled_entity_types)
@@ -455,6 +436,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
       new MultiversionManagerEvent($entity_types, $migration)
     );
 
+    endforeach;
     return $this;
   }
 
@@ -531,9 +513,9 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
 
       if ($has_data[$entity_type_id]) {
         // Migrate content to temporary storage.
-        if ($storage->getEntityTypeId() === 'file') {
-          $migration->copyFilesToMigrateDirectory($storage);
-        }
+        //if ($storage->getEntityTypeId() === 'file') {
+        //  $migration->copyFilesToMigrateDirectory($storage);
+        //}
         $field_map = $migration->getFieldMap($entity_type, $op, self::TO_TMP);
         $migration->migrateContentToTemp($storage->getEntityType(), $field_map);
       }

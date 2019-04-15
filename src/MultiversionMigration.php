@@ -246,7 +246,7 @@ class MultiversionMigration implements MultiversionMigrationInterface {
     }
 
     // @todo Implement hook/alter functionality here.
-    if (MultiversionManager::OP_DISABLE == $op) {
+    if (MultiversionManager::OP_DISABLE == $op && MultiversionManager::TO_TMP == $action) {
       $parent_key = 'parent';
       if ('menu_link_content' == $entity_type->id() && isset($map[$parent_key])) {
         $map[$parent_key] = [
