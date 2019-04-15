@@ -36,6 +36,9 @@ function multiversion_drush_command() {
     'arguments' => [
       'entity_types' => dt('The list of entity types, comma or space separated.'),
     ],
+    'options' => [
+      'all' => dt('All entity types will be non-multiversionable (Override entity_types argument).'),
+    ],
     'examples' => [
       'drush multiversion-disable-entity-types my_et' => 'Makes my_et entity type non-multiversionable.',
       'drush multiversion-disable-entity-types my_et1 my_et2' => 'Makes my_et and my_et2 entity types non-multiversionable.',
@@ -141,12 +144,22 @@ function drush_multiversion_enable_entity_types() {
  * Implements drush_hook_COMMAND().
  */
 function drush_multiversion_disable_entity_types() {
+  $skip_confirm = FALSE;
+  $all = drush_get_option('all', FALSE);
   $args = pm_parse_arguments(func_get_args());
-  if (empty($args)) {
+  if ($all === TRUE) {
+    $args = \Drupal::config('multiversion.settings')->get('enabled_entity_types') ?: [];
+    if(!drush_confirm(dt('Do you really want to disable all entity types (!entity_types)?', ['!entity_types'=> implode(', ',$args)]))) {
+      return drush_user_abort();
+    }else {
+      $skip_confirm = TRUE;
+    }
+  }
+  if(empty($args)){
     drush_log(dt('Entity types list argument is missing.'), LogLevel::ERROR);
   }
-  elseif ($entity_types = _drush_multiversion_get_entity_types($args)) {
-    if(!drush_confirm(dt('Do you really want to continue?'))) {
+  if ($entity_types = _drush_multiversion_get_entity_types($args)) {
+    if(!$skip_confirm && !drush_confirm(dt('Do you really want to continue?'))) {
       return drush_user_abort();
     }
     try {
@@ -161,16 +174,16 @@ function drush_multiversion_disable_entity_types() {
 function _drush_multiversion_get_entity_types($entity_type_ids) {
   $entity_types = [];
   $manager = \Drupal::entityTypeManager();
-  try {
-    foreach ($entity_type_ids as $id) {
+  foreach ($entity_type_ids as $id) {
+    try {
       $entity_type = $manager->getStorage($id)->getEntityType();
-      if ($entity_type instanceof ContentEntityTypeInterface) {
-        $entity_types[$id] = $entity_type;
-      }
     }
-  }
-  catch (Exception $e) {
-    drush_log($e->getMessage(), LogLevel::ERROR);
+    catch (Exception $e) {
+      drush_log($e->getMessage(), LogLevel::INFO);
+    }
+    if ($entity_type instanceof ContentEntityTypeInterface) {
+      $entity_types[$id] = $entity_type;
+    }
   }
 
   return $entity_types;
