@@ -28,7 +28,7 @@ interface MultiversionMigrationInterface {
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
    * @return \Drupal\multiversion\MultiversionMigrationInterface
    */
-  public function migrateContentToTemp(EntityTypeInterface $entity_type);
+  public function migrateContentToTemp(EntityTypeInterface $entity_type, $process);
 
   /**
    * @param \Drupal\file\FileStorageInterface $storage
@@ -51,7 +51,7 @@ interface MultiversionMigrationInterface {
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
    * @return \Drupal\multiversion\MultiversionMigrationInterface
    */
-  public function migrateContentFromTemp(EntityTypeInterface $entity_type);
+  public function migrateContentFromTemp(EntityTypeInterface $entity_type, $process);
 
   /**
    * @return \Drupal\multiversion\MultiversionMigrationInterface
@@ -66,4 +66,5 @@ interface MultiversionMigrationInterface {
    */
   public function cleanupMigration($id);
 
+  public function getFieldMap(EntityTypeInterface $entity_type, $op, $action);
 }

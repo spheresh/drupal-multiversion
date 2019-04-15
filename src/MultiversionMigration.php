@@ -4,9 +4,9 @@ namespace Drupal\multiversion;
 
 use Drupal\Core\Database\Database;
 use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\file\FileStorageInterface;
@@ -85,23 +85,23 @@ class MultiversionMigration implements MultiversionMigrationInterface {
   /**
    * {@inheritdoc}
    */
-  public function migrateContentToTemp(EntityTypeInterface $entity_type) {
-    $id = $entity_type->id() . '__to_tmp';
-    $values = [
+  public function migrateContentToTemp(EntityTypeInterface $entity_type, $process) {
+    $id = $entity_type->id() . '__' . MultiversionManager::TO_TMP;
+    $definition = [
       'id' => $id,
       'label' => '',
-      'process' => $this->getFieldMap($entity_type),
+      'process' => $process,
       'source' => [
         'plugin' => 'multiversion',
-        'translations' => $entity_type->isTranslatable(),
+        'translations' => (bool) $entity_type->getKey('langcode'),
       ],
       'destination' => [
         'plugin' => 'tempstore',
-        'translations' => $entity_type->isTranslatable(),
+        'translations' => (bool) $entity_type->getKey('langcode'),
       ],
     ];
     $migration = \Drupal::service('plugin.manager.migration')
-      ->createStubMigration($values);
+      ->createStubMigration($definition);
     $this->executeMigration($migration);
     return $this;
   }
@@ -170,23 +170,23 @@ class MultiversionMigration implements MultiversionMigrationInterface {
    * @todo: Create the migration with the correct parameters for using stub
    *   entities for entity references.
    */
-  public function migrateContentFromTemp(EntityTypeInterface $entity_type) {
-    $id = $entity_type->id() . '__from_tmp';
-    $values = [
+  public function migrateContentFromTemp(EntityTypeInterface $entity_type, $process) {
+    $id = $entity_type->id() . '__' . MultiversionManager::FROM_TMP;
+    $definition = [
       'id' => $id,
       'label' => '',
-      'process' => $this->getFieldMap($entity_type, TRUE),
+      'process' => $process,
       'source' => [
         'plugin' => 'tempstore',
-        'translations' => $entity_type->isTranslatable(),
+        'translations' => (bool) $entity_type->getKey('langcode'),
         ],
       'destination' => [
         'plugin' => 'multiversion',
-        'translations' => $entity_type->isTranslatable(),
+        'translations' => (bool) $entity_type->getKey('langcode'),
       ],
     ];
     $migration = \Drupal::service('plugin.manager.migration')
-      ->createStubMigration($values);
+      ->createStubMigration($definition);
     $this->executeMigration($migration);
     return $this;
   }
@@ -212,11 +212,10 @@ class MultiversionMigration implements MultiversionMigrationInterface {
    * Helper method to fetch the field map for an entity type.
    *
    * @param EntityTypeInterface $entity_type
-   * @param bool $migration_from_tmp
    *
    * @return array
    */
-  public function getFieldMap(EntityTypeInterface $entity_type, $migration_from_tmp = FALSE) {
+  public function getFieldMap(EntityTypeInterface $entity_type, $op, $action) {
     $map = [];
     // For some reasons it sometimes doesn't work if injecting the service.
     $entity_type_bundle_info = \Drupal::service('entity_type.bundle.info');
@@ -234,15 +233,25 @@ class MultiversionMigration implements MultiversionMigrationInterface {
         if (!in_array($name, ['workspace', '_deleted', '_rev'])) {
           $map[$name] = $name;
         }
-
-        if ('menu_link_content' == $entity_type->id() && 'parent' == $name) {
-          $map[$name] = [
-            'plugin' => 'multiversion_migrate_menu_link_content_parent',
-            'source' => $name,
-          ];
-        }
       }
     }
+
+    // @todo Implement hook/alter functionality here.
+    if (MultiversionManager::OP_DISABLE == $op && MultiversionManager::TO_TMP == $action) {
+      $parent_key = 'parent';
+      if ('menu_link_content' == $entity_type->id() && isset($map[$parent_key])) {
+        $map[$parent_key] = [
+          [
+            'plugin' => 'splice',
+            'delimiter' => ':',
+            'source' => $parent_key,
+            'strict' => FALSE,
+            'limit' => 2,
+          ],
+        ];
+      }
+    }
+
     return $map;
   }
 

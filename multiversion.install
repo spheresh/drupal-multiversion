@@ -3,6 +3,7 @@
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\multiversion\Entity\Storage\ContentEntityStorageInterface;
+use Drupal\multiversion\MultiversionManager;
 use Drupal\multiversion\Redirect\RedirectStorageSchema;
 use Drupal\multiversion\Entity\Workspace;
 use Drupal\Core\Database\Database;
@@ -182,7 +183,8 @@ function multiversion_update_8004() {
       // Create a new migration and migrate user entities to the temporary storage.
       $migration = MultiversionMigration::create(\Drupal::getContainer(), $entity_type_manager);
       $migration->installDependencies();
-      $migration->migrateContentToTemp($entity_type);
+      $process = $migration->getFieldMap($entity_type, MultiversionManager::OP_DISABLE, MultiversionManager::TO_TMP);
+      $migration->migrateContentToTemp($entity_type, $process);
       // Remove all data from the old storage.
       $migration->emptyOldStorage($storage);
 
@@ -197,7 +199,8 @@ function multiversion_update_8004() {
       // Apply new updates.
       $migration->applyNewStorage();
       // Migrate content from the temporary storage to the new storage.
-      $migration->migrateContentFromTemp($entity_type);
+      $process = $migration->getFieldMap($entity_type, MultiversionManager::OP_DISABLE, MultiversionManager::FROM_TMP);
+      $migration->migrateContentFromTemp($entity_type, $process);
       $migration->cleanupMigration('user__to_tmp');
       $migration->cleanupMigration('user__from_tmp');
       $migration->uninstallDependencies();
@@ -607,3 +610,4 @@ function multiversion_update_8110() {
     ->setInitialValue(FALSE);
   $definition_update_manager->installFieldStorageDefinition('queued_for_delete', 'workspace', 'multiversion', $queued_for_delete);
 }
+
