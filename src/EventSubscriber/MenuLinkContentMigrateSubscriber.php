@@ -50,7 +50,7 @@ class MenuLinkContentMigrateSubscriber implements EventSubscriberInterface {
    * {@inheritdoc}
    */
   public static function getSubscribedEvents() {
-    return [MultiversionManagerEvents::POSTMIGRATE => 'onPostMigrateLinks'];
+    return [MultiversionManagerEvents::POSTMIGRATE => ['onPostMigrateLinks']];
   }
 
 }

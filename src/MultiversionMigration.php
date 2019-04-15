@@ -237,7 +237,7 @@ class MultiversionMigration implements MultiversionMigrationInterface {
     }
 
     // @todo Implement hook/alter functionality here.
-    if (MultiversionManager::OP_DISABLE == $op && MultiversionManager::TO_TMP == $action) {
+    if (MultiversionManager::OP_DISABLE == $op) {
       $parent_key = 'parent';
       if ('menu_link_content' == $entity_type->id() && isset($map[$parent_key])) {
         $map[$parent_key] = [
@@ -246,7 +246,7 @@ class MultiversionMigration implements MultiversionMigrationInterface {
             'delimiter' => ':',
             'source' => $parent_key,
             'strict' => FALSE,
-            'limit' => 2,
+            'slice' => 2,
           ],
         ];
       }

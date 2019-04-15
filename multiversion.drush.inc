@@ -177,12 +177,12 @@ function _drush_multiversion_get_entity_types($entity_type_ids) {
   foreach ($entity_type_ids as $id) {
     try {
       $entity_type = $manager->getStorage($id)->getEntityType();
+      if ($entity_type instanceof ContentEntityTypeInterface) {
+        $entity_types[$id] = $entity_type;
+      }
     }
     catch (Exception $e) {
       drush_log($e->getMessage(), LogLevel::INFO);
-    }
-    if ($entity_type instanceof ContentEntityTypeInterface) {
-      $entity_types[$id] = $entity_type;
     }
   }
 

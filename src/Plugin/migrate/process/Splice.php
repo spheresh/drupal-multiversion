@@ -24,14 +24,8 @@ class Splice extends Explode {
   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
     $value = parent::transform($value, $migrate_executable, $row, $destination_property);
 
-    //if (!empty($value)) {
-    //  if ($value[0] === 'menu_link_content' && count($value) === 3) {
-    //    unset($value[2]);
-    //  }
-    //}
-
-    if (isset($this->configuration['limit'])) {
-      $value = array_splice($value, 0, $this->configuration['limit']);
+    if (isset($this->configuration['slice'])) {
+      $value = array_splice($value, 0, $this->configuration['slice']);
     }
 
     return implode($this->configuration['delimiter'], $value);
