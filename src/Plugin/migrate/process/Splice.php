@@ -29,7 +29,6 @@ class Splice extends Explode {
     }
 
     return implode($this->configuration['delimiter'], $value);
-
   }
 
   /**

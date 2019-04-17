@@ -84,6 +84,8 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
   protected $eventDispatcher;
 
   /**
+   * {@inheritdoc}
+   *
    * @param \Drupal\multiversion\Workspace\WorkspaceManagerInterface $workspace_manager
    * @param \Symfony\Component\Serializer\Serializer $serializer
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
@@ -92,6 +94,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    * @param \Drupal\Core\Database\Connection $connection
    * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
+   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
    */
   public function __construct(WorkspaceManagerInterface $workspace_manager, Serializer $serializer, EntityTypeManagerInterface $entity_type_manager, StateInterface $state, LanguageManagerInterface $language_manager, CacheBackendInterface $cache, Connection $connection, EntityFieldManagerInterface $entity_field_manager, EventDispatcherInterface $event_dispatcher) {
     $this->workspaceManager = $workspace_manager;
@@ -269,7 +272,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     $migration->installDependencies();
 
     $this->eventDispatcher->dispatch(
-      MultiversionManagerEvents::PREMIGRATE,
+      MultiversionManagerEvents::PRE_MIGRATE,
       new MultiversionManagerEvent($entity_types, $migration)
     );
 
@@ -308,8 +311,8 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     foreach ($updated_entity_types as $entity_type_id => $entity_type) {
       // Migrate from the temporary storage to the new shiny home.
       if ($has_data[$entity_type_id]) {
-        $process = $migration->getFieldMap($entity_type, self::OP_ENABLE, self::FROM_TMP);
-        $migration->migrateContentFromTemp($entity_type, $process);
+        $field_map = $migration->getFieldMap($entity_type, self::OP_ENABLE, self::FROM_TMP);
+        $migration->migrateContentFromTemp($entity_type, $field_map);
         $migration->cleanupMigration($entity_type_id . '__' . self::TO_TMP);
         $migration->cleanupMigration($entity_type_id . '__' . self::FROM_TMP);
       }
@@ -343,7 +346,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     $this->state->set('multiversion.migration_done', TRUE);
 
     $this->eventDispatcher->dispatch(
-      MultiversionManagerEvents::POSTMIGRATE,
+      MultiversionManagerEvents::POST_MIGRATE,
       new MultiversionManagerEvent($entity_types, $migration)
     );
 
@@ -364,7 +367,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     $migration->installDependencies();
 
     $this->eventDispatcher->dispatch(
-      MultiversionManagerEvents::PREMIGRATE,
+      MultiversionManagerEvents::PRE_MIGRATE,
       new MultiversionManagerEvent($entity_types, $migration)
     );
 
@@ -429,8 +432,8 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
 
       // Migrate from the temporary storage to the drupal default storage.
       if ($has_data[$entity_type_id]) {
-        $process = $migration->getFieldMap($entity_type, self::OP_DISABLE, self::FROM_TMP);
-        $migration->migrateContentFromTemp($entity_type, $process);
+        $field_map = $migration->getFieldMap($entity_type, self::OP_DISABLE, self::FROM_TMP);
+        $migration->migrateContentFromTemp($entity_type, $field_map);
         $migration->cleanupMigration($entity_type_id . '__' . self::TO_TMP);
         $migration->cleanupMigration($entity_type_id . '__' . self::FROM_TMP);
       }
@@ -448,7 +451,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
     $this->state->delete('multiversion.migration_done');
 
     $this->eventDispatcher->dispatch(
-      MultiversionManagerEvents::POSTMIGRATE,
+      MultiversionManagerEvents::POST_MIGRATE,
       new MultiversionManagerEvent($entity_types, $migration)
     );
 
@@ -531,8 +534,8 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
         if ($storage->getEntityTypeId() === 'file') {
           $migration->copyFilesToMigrateDirectory($storage);
         }
-        $process = $migration->getFieldMap($entity_type, $op, self::TO_TMP);
-        $migration->migrateContentToTemp($storage->getEntityType(), $process);
+        $field_map = $migration->getFieldMap($entity_type, $op, self::TO_TMP);
+        $migration->migrateContentToTemp($storage->getEntityType(), $field_map);
       }
     }
 

@@ -26,9 +26,11 @@ interface MultiversionMigrationInterface {
 
   /**
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
+   * @param array $field_map
+   *
    * @return \Drupal\multiversion\MultiversionMigrationInterface
    */
-  public function migrateContentToTemp(EntityTypeInterface $entity_type, $process);
+  public function migrateContentToTemp(EntityTypeInterface $entity_type, $field_map);
 
   /**
    * @param \Drupal\file\FileStorageInterface $storage
@@ -49,9 +51,11 @@ interface MultiversionMigrationInterface {
 
   /**
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
+   * @param array $field_map
+   *
    * @return \Drupal\multiversion\MultiversionMigrationInterface
    */
-  public function migrateContentFromTemp(EntityTypeInterface $entity_type, $process);
+  public function migrateContentFromTemp(EntityTypeInterface $entity_type, $field_map);
 
   /**
    * @return \Drupal\multiversion\MultiversionMigrationInterface
@@ -66,5 +70,14 @@ interface MultiversionMigrationInterface {
    */
   public function cleanupMigration($id);
 
+  /**
+   * Helper method to fetch the field map for an entity type.
+   *
+   * @param EntityTypeInterface $entity_type
+   * @param string $op
+   * @param string $action
+   *
+   * @return array
+   */
   public function getFieldMap(EntityTypeInterface $entity_type, $op, $action);
 }

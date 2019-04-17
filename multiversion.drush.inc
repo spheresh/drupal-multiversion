@@ -36,9 +36,6 @@ function multiversion_drush_command() {
     'arguments' => [
       'entity_types' => dt('The list of entity types, comma or space separated.'),
     ],
-    'options' => [
-      'all' => dt('All entity types will be non-multiversionable (Override entity_types argument).'),
-    ],
     'examples' => [
       'drush multiversion-disable-entity-types my_et' => 'Makes my_et entity type non-multiversionable.',
       'drush multiversion-disable-entity-types my_et1 my_et2' => 'Makes my_et and my_et2 entity types non-multiversionable.',
@@ -144,24 +141,21 @@ function drush_multiversion_enable_entity_types() {
  * Implements drush_hook_COMMAND().
  */
 function drush_multiversion_disable_entity_types() {
-  $skip_confirm = FALSE;
-  $all = drush_get_option('all', FALSE);
   $args = pm_parse_arguments(func_get_args());
-  if ($all === TRUE) {
+  if (empty($args)) {
     $args = \Drupal::config('multiversion.settings')->get('enabled_entity_types') ?: [];
-    if(!drush_confirm(dt('Do you really want to disable all entity types (!entity_types)?', ['!entity_types'=> implode(', ',$args)]))) {
-      return drush_user_abort();
-    }else {
-      $skip_confirm = TRUE;
-    }
-  }
-  if(empty($args)){
-    drush_log(dt('Entity types list argument is missing.'), LogLevel::ERROR);
-  }
-  if ($entity_types = _drush_multiversion_get_entity_types($args)) {
-    if(!$skip_confirm && !drush_confirm(dt('Do you really want to continue?'))) {
+    if (!drush_confirm(dt('Do you really want to disable all enabled entity types (!entity_types)?', [
+      '!entity_types' => implode(', ', array_keys(_drush_multiversion_get_entity_types($args))),
+    ]))) {
       return drush_user_abort();
     }
+  }
+  else {
+    if (!drush_confirm(dt('Do you really want to continue?'))) {
+      return drush_user_abort();
+    }
+  }
+  if (!empty($args) && $entity_types = _drush_multiversion_get_entity_types($args)) {
     try {
       \Drupal::service('multiversion.manager')->disableEntityTypes($entity_types);
     }

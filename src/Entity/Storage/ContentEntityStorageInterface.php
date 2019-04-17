@@ -36,8 +36,6 @@ interface ContentEntityStorageInterface extends EntityStorageInterface {
    * Truncate all related tables to entity type.
    *
    * This function should be called to avoid calling pre-delete/delete hooks.
-   *
-   * @param \Drupal\Core\Entity\EntityInterface[]|NULL $entities
    */
   public function truncate();
 

@@ -10,6 +10,9 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
  * MenuContentLinkMigrateSubscriber class.
+ *
+ * A menu_tree database table should be rediscovered
+ * after enabling/disabling a menu_link_content entity.
  */
 class MenuLinkContentMigrateSubscriber implements EventSubscriberInterface {
 
@@ -32,12 +35,14 @@ class MenuLinkContentMigrateSubscriber implements EventSubscriberInterface {
   }
 
   /**
-   * A menu_tree database table should be rediscovered after enabling/disabling a menu_link_content entity.
+   * Set rediscover property and rebuild menu tree.
+   *
+   * @param \Drupal\multiversion\Event\MultiversionManagerEvent $event
    */
   public function onPostMigrateLinks(MultiversionManagerEvent $event) {
     if ($entity_type = $event->getEntityType('menu_link_content')) {
       $data_table = $entity_type->getDataTable();
-      // Set all menu links which should be rediscovered.
+      // Set a rediscover and rebuild menu_tree table.
       // @see \Drupal\menu_link_content\Plugin\Deriver\MenuLinkContentDeriver
       $this->connection->update($data_table)
         ->fields(['rediscover' => 1])
@@ -50,7 +55,7 @@ class MenuLinkContentMigrateSubscriber implements EventSubscriberInterface {
    * {@inheritdoc}
    */
   public static function getSubscribedEvents() {
-    return [MultiversionManagerEvents::POSTMIGRATE => ['onPostMigrateLinks']];
+    return [MultiversionManagerEvents::POST_MIGRATE => ['onPostMigrateLinks']];
   }
 
 }

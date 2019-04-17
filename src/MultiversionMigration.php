@@ -84,13 +84,18 @@ class MultiversionMigration implements MultiversionMigrationInterface {
 
   /**
    * {@inheritdoc}
+   *
+   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
+   * @param array $field_map
+   *
+   * @return \Drupal\multiversion\MultiversionMigrationInterface
    */
-  public function migrateContentToTemp(EntityTypeInterface $entity_type, $process) {
+  public function migrateContentToTemp(EntityTypeInterface $entity_type, $field_map) {
     $id = $entity_type->id() . '__' . MultiversionManager::TO_TMP;
     $definition = [
       'id' => $id,
       'label' => '',
-      'process' => $process,
+      'process' => $field_map,
       'source' => [
         'plugin' => 'multiversion',
         'translations' => (bool) $entity_type->getKey('langcode'),
@@ -167,15 +172,17 @@ class MultiversionMigration implements MultiversionMigrationInterface {
   /**
    * {@inheritdoc}
    *
-   * @todo: Create the migration with the correct parameters for using stub
-   *   entities for entity references.
+   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
+   * @param array $field_map
+   *
+   * @return \Drupal\multiversion\MultiversionMigrationInterface
    */
-  public function migrateContentFromTemp(EntityTypeInterface $entity_type, $process) {
+  public function migrateContentFromTemp(EntityTypeInterface $entity_type, $field_map) {
     $id = $entity_type->id() . '__' . MultiversionManager::FROM_TMP;
     $definition = [
       'id' => $id,
       'label' => '',
-      'process' => $process,
+      'process' => $field_map,
       'source' => [
         'plugin' => 'tempstore',
         'translations' => (bool) $entity_type->getKey('langcode'),
@@ -212,6 +219,8 @@ class MultiversionMigration implements MultiversionMigrationInterface {
    * Helper method to fetch the field map for an entity type.
    *
    * @param EntityTypeInterface $entity_type
+   * @param string $op
+   * @param string $action
    *
    * @return array
    */
