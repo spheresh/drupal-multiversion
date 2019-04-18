@@ -142,3 +142,8 @@ services:
     arguments: ['@database', '@plugin.manager.menu.link']
     tags:
       - { name: event_subscriber }
+  multiversion.search_api_migrate_subscriber:
+    class: Drupal\dset_search\EventSubscriber\SearchApiMigrateSubscriber
+    arguments: ['@database', '@plugin.manager.menu.link', '@config.factory']
+    tags:
+      - { name: event_subscriber }
