@@ -142,3 +142,8 @@ services:
     arguments: ['@database', '@plugin.manager.menu.link']
     tags:
       - { name: event_subscriber }
+  multiversion.file_usage_migrate_subscriber:
+    class: Drupal\multiversion\EventSubscriber\FileUsageMigrateSubscriber
+    arguments: ['@database', '@module_handler']
+    tags:
+      - { name: event_subscriber }

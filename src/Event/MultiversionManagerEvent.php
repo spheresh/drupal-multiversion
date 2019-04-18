@@ -3,7 +3,6 @@
 namespace Drupal\multiversion\Event;
 
 use Drupal\Core\Entity\ContentEntityTypeInterface;
-use Drupal\multiversion\MultiversionMigrationInterface;
 use Symfony\Component\EventDispatcher\Event;
 
 /**
@@ -18,23 +17,31 @@ use Symfony\Component\EventDispatcher\Event;
 class MultiversionManagerEvent extends Event {
 
   /**
-   * List of content type affected by enableEntityTypes/disableEntityTypes function of MultiversionManager class.
+   * List of content type.
+   *
+   * Content types that affected by enableEntityTypes/disableEntityTypes
+   * function of MultiversionManager class.
    *
    * @var \Drupal\Core\Entity\ContentEntityTypeInterface[]
    */
   protected $entityTypes;
 
   /**
-   * @var \Drupal\multiversion\MultiversionMigrationInterface
+   * Constructor.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityTypeInterface[] $entity_types
    */
-  protected $migration;
+  public function __construct(array $entity_types) {
+    $this->entityTypes = $entity_types;
+  }
 
   /**
-   * {@inheritdoc}
+   * Getter function.
+   *
+   * @return \Drupal\Core\Entity\ContentEntityTypeInterface[]
    */
-  public function __construct(array $entity_types, MultiversionMigrationInterface $migration) {
-    $this->entityTypes = $entity_types;
-    $this->migration = $migration;
+  public function getEntityTypes() {
+    return $this->entityTypes;
   }
 
   /**
