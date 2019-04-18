@@ -47,6 +47,8 @@ class MultiversionManagerEvent extends Event {
   /**
    * It helps the event subscriber to validate the entity_type_id value.
    *
+   * @param string $entity_type_id
+   *
    * @return \Drupal\Core\Entity\ContentEntityTypeInterface|NULL
    */
   public function getEntityType($entity_type_id) {
