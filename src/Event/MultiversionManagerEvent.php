@@ -17,10 +17,7 @@ use Symfony\Component\EventDispatcher\Event;
 class MultiversionManagerEvent extends Event {
 
   /**
-   * List of content type.
-   *
-   * Content types that affected by enableEntityTypes/disableEntityTypes
-   * function of MultiversionManager class.
+   * List of entity types keyed with their entity id.
    *
    * @var \Drupal\Core\Entity\ContentEntityTypeInterface[]
    */
@@ -36,7 +33,7 @@ class MultiversionManagerEvent extends Event {
   }
 
   /**
-   * Getter function.
+   * Get the list of entity types.
    *
    * @return \Drupal\Core\Entity\ContentEntityTypeInterface[]
    */

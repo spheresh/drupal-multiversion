@@ -9,10 +9,11 @@ use Drupal\multiversion\Event\MultiversionManagerEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
- * MenuContentLinkMigrateSubscriber class.
+ * FileUsageMigrateSubscriber class.
  *
- * A menu_tree database table should be rediscovered
- * after enabling/disabling a menu_link_content entity.
+ * Records in the file usage table associated with migrated entity type needs to
+ * be removed they will be automatically re created when this entity type
+ * records will be migrated back by file field handler.
  */
 class FileUsageMigrateSubscriber implements EventSubscriberInterface {
 
@@ -35,7 +36,7 @@ class FileUsageMigrateSubscriber implements EventSubscriberInterface {
   }
 
   /**
-   * Set rediscover property and rebuild menu tree.
+   * Remove file usage records associated with migrated entity type.
    *
    * @param \Drupal\multiversion\Event\MultiversionManagerEvent $event
    */
