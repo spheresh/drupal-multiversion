@@ -273,7 +273,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
 
     $this->eventDispatcher->dispatch(
       MultiversionManagerEvents::PRE_MIGRATE,
-      new MultiversionManagerEvent($entity_types)
+      new MultiversionManagerEvent($entity_types, self::OP_ENABLE)
     );
 
     $has_data = $this->prepareContentForMigration($entity_types, $migration, self::OP_ENABLE);
@@ -347,7 +347,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
 
     $this->eventDispatcher->dispatch(
       MultiversionManagerEvents::POST_MIGRATE,
-      new MultiversionManagerEvent($entity_types)
+      new MultiversionManagerEvent($entity_types, self::OP_ENABLE)
     );
 
     // Another nasty workaround because the cache is getting skewed somewhere.
@@ -368,7 +368,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
 
     $this->eventDispatcher->dispatch(
       MultiversionManagerEvents::PRE_MIGRATE,
-      new MultiversionManagerEvent($entity_types)
+      new MultiversionManagerEvent($entity_types, self::OP_DISABLE)
     );
 
     $has_data = $this->prepareContentForMigration($entity_types, $migration, self::OP_DISABLE);
@@ -452,7 +452,7 @@ class MultiversionManager implements MultiversionManagerInterface, ContainerAwar
 
     $this->eventDispatcher->dispatch(
       MultiversionManagerEvents::POST_MIGRATE,
-      new MultiversionManagerEvent($entity_types)
+      new MultiversionManagerEvent($entity_types, self::OP_DISABLE)
     );
 
     return $this;

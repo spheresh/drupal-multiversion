@@ -24,12 +24,29 @@ class MultiversionManagerEvent extends Event {
   protected $entityTypes;
 
   /**
+   * Operation type name.
+   *
+   * @var string
+   */
+  protected $op;
+
+  /**
    * Constructor.
    *
    * @param \Drupal\Core\Entity\ContentEntityTypeInterface[] $entity_types
    */
-  public function __construct(array $entity_types) {
+  public function __construct(array $entity_types, $op) {
     $this->entityTypes = $entity_types;
+    $this->op = $op;
+  }
+
+  /**
+   * Get the operation type value.
+   *
+   * @return string
+   */
+  public function getOp() {
+    return $this->op;
   }
 
   /**

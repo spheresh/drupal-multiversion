@@ -6,6 +6,7 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Menu\MenuLinkManagerInterface;
 use Drupal\multiversion\Event\MultiversionManagerEvent;
 use Drupal\multiversion\Event\MultiversionManagerEvents;
+use Drupal\multiversion\MultiversionManager;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -40,7 +41,7 @@ class MenuLinkContentMigrateSubscriber implements EventSubscriberInterface {
    * @param \Drupal\multiversion\Event\MultiversionManagerEvent $event
    */
   public function onPostMigrateLinks(MultiversionManagerEvent $event) {
-    if ($entity_type = $event->getEntityType('menu_link_content')) {
+    if ($event->getOp() === MultiversionManager::OP_DISABLE && $entity_type = $event->getEntityType('menu_link_content')) {
       $data_table = $entity_type->getDataTable();
       // Set a rediscover and rebuild menu_tree table.
       // @see \Drupal\menu_link_content\Plugin\Deriver\MenuLinkContentDeriver
