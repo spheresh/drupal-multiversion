@@ -499,6 +499,17 @@ trait ContentEntityStorageTrait {
   }
 
   /**
+   * Truncate all related tables to entity type.
+   *
+   * This function should be called to avoid calling pre-delete/delete hooks.
+   */
+  public function truncate() {
+    foreach ($this->getTableMapping()->getTableNames() as $table) {
+      $this->database->truncate($table)->execute();
+    }
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function resetCache(array $ids = NULL) {

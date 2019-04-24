@@ -143,12 +143,19 @@ function drush_multiversion_enable_entity_types() {
 function drush_multiversion_disable_entity_types() {
   $args = pm_parse_arguments(func_get_args());
   if (empty($args)) {
-    drush_log(dt('Entity types list argument is missing.'), LogLevel::ERROR);
-  }
-  elseif ($entity_types = _drush_multiversion_get_entity_types($args)) {
-    if(!drush_confirm(dt('Do you really want to continue?'))) {
+    $args = \Drupal::config('multiversion.settings')->get('enabled_entity_types') ?: [];
+    if (!drush_confirm(dt('Do you really want to disable all enabled entity types (!entity_types)?', [
+      '!entity_types' => implode(', ', array_keys(_drush_multiversion_get_entity_types($args))),
+    ]))) {
       return drush_user_abort();
     }
+  }
+  else {
+    if (!drush_confirm(dt('Do you really want to continue?'))) {
+      return drush_user_abort();
+    }
+  }
+  if (!empty($args) && $entity_types = _drush_multiversion_get_entity_types($args)) {
     try {
       \Drupal::service('multiversion.manager')->disableEntityTypes($entity_types);
     }
@@ -161,16 +168,16 @@ function drush_multiversion_disable_entity_types() {
 function _drush_multiversion_get_entity_types($entity_type_ids) {
   $entity_types = [];
   $manager = \Drupal::entityTypeManager();
-  try {
-    foreach ($entity_type_ids as $id) {
+  foreach ($entity_type_ids as $id) {
+    try {
       $entity_type = $manager->getStorage($id)->getEntityType();
       if ($entity_type instanceof ContentEntityTypeInterface) {
         $entity_types[$id] = $entity_type;
       }
     }
-  }
-  catch (Exception $e) {
-    drush_log($e->getMessage(), LogLevel::ERROR);
+    catch (Exception $e) {
+      drush_log($e->getMessage(), LogLevel::INFO);
+    }
   }
 
   return $entity_types;
