@@ -3,7 +3,6 @@
 namespace Drupal\multiversion\EventSubscriber;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\multiversion\Event\MultiversionManagerEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Drupal\multiversion\Workspace\WorkspaceManagerInterface;
@@ -18,7 +17,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
  * This is a necessary step since "workspace" and "_deleted" properties
  * will be deleted and this is possible to get duplicated entities.
  */
-class EntityMigrateSubscriber implements EventSubscriberInterface {
+class EntityWorkspaceMigrateSubscriber implements EventSubscriberInterface {
 
   /**
    * An array of entity types enabled in Multiversion.
@@ -77,7 +76,7 @@ class EntityMigrateSubscriber implements EventSubscriberInterface {
   protected $configFactory;
 
   /**
-   * EntityMigrateSubscriber constructor.
+   * EntityWorkspaceMigrateSubscriber constructor.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
@@ -91,19 +90,15 @@ class EntityMigrateSubscriber implements EventSubscriberInterface {
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
    */
-  public function __construct(ModuleHandlerInterface $module_handler, EntityTypeManagerInterface $entity_type_manager, WorkspaceManagerInterface $workspace_manager, QueryFactory $entity_query, ContainerInterface $container, ConfigFactoryInterface $config_factory) {
+  public function __construct(EntityTypeManagerInterface $entity_type_manager, WorkspaceManagerInterface $workspace_manager, QueryFactory $entity_query, ContainerInterface $container, ConfigFactoryInterface $config_factory) {
     $this->entityTypeManager = $entity_type_manager;
+    $this->workspaceManager = $workspace_manager;
     $this->entityQuery = $entity_query;
     $this->container = $container;
     $this->configFactory = $config_factory;
     $this->enabledEntityTypes = $this->configFactory->get('multiversion.settings')->get('enabled_entity_types');
-
-    // TODO: provide a proper handling of the workspace module dependency.
-    if ($module_handler->moduleExists('workspace')) {
-      $this->workspaceManager = $workspace_manager;
-      $this->defaultWorkspaceId = $this->container->getParameter('workspace.default');
-      $this->activeWorkspace = $this->workspaceManager->getActiveWorkspace();
-    }
+    $this->defaultWorkspaceId = $this->container->getParameter('workspace.default');
+    $this->activeWorkspace = $this->workspaceManager->getActiveWorkspace();
   }
 
   /**
