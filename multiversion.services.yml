@@ -46,7 +46,7 @@ services:
     arguments: ['@database']
   multiversion.manager:
     class: Drupal\multiversion\MultiversionManager
-    arguments: ['@workspace.manager', '@serializer', '@entity.manager', '@state', '@language_manager', '@cache.discovery', '@database', '@entity_field.manager']
+    arguments: ['@workspace.manager', '@serializer', '@entity.manager', '@state', '@language_manager', '@cache.discovery', '@database', '@entity_field.manager', '@event_dispatcher']
     calls:
       - [setContainer, ['@service_container']]
   workspace.manager:
@@ -135,5 +135,15 @@ services:
       - { name: backend_overridable }
   multiversion.node_revision_route_subscriber:
     class: Drupal\multiversion\EventSubscriber\NodeRevisionRouteSubscriber
+    tags:
+      - { name: event_subscriber }
+  multiversion.menu_content_link_migrate_subscriber:
+    class: Drupal\multiversion\EventSubscriber\MenuLinkContentMigrateSubscriber
+    arguments: ['@database', '@plugin.manager.menu.link']
+    tags:
+      - { name: event_subscriber }
+  multiversion.file_usage_migrate_subscriber:
+    class: Drupal\multiversion\EventSubscriber\FileUsageMigrateSubscriber
+    arguments: ['@database', '@module_handler']
     tags:
       - { name: event_subscriber }

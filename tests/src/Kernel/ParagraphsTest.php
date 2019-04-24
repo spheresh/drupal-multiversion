@@ -59,6 +59,7 @@ class ParagraphsTest extends KernelTestBase {
     $this->installEntitySchema('workspace');
     $this->installSchema('node', 'node_access');
     $this->installSchema('key_value', 'key_value_sorted');
+    $this->installSchema('file', 'file_usage');
     $multiversion_manager = $this->container->get('multiversion.manager');
     $multiversion_manager->enableEntityTypes();
     $workspace = Workspace::create([

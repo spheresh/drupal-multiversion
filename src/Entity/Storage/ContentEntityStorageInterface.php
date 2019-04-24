@@ -33,6 +33,13 @@ interface ContentEntityStorageInterface extends EntityStorageInterface {
   public function purge(array $entities);
 
   /**
+   * Truncate all related tables to entity type.
+   *
+   * This function should be called to avoid calling pre-delete/delete hooks.
+   */
+  public function truncate();
+
+  /**
    * Save the given entity without forcing a new revision.
    *
    * @param \Drupal\Core\Entity\EntityInterface $entity
