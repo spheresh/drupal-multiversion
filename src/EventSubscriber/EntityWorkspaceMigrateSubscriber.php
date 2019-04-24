@@ -8,7 +8,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Drupal\multiversion\Workspace\WorkspaceManagerInterface;
 use Drupal\Core\Entity\Query\QueryFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\multiversion\Event\MultiversionManagerEvent;
 
 /**
  * EntityWorkspaceMigrateSubscriber class.
@@ -18,6 +18,13 @@ use Drupal\Core\Config\ConfigFactoryInterface;
  * will be deleted and this is possible to get duplicated entities.
  */
 class EntityWorkspaceMigrateSubscriber implements EventSubscriberInterface {
+
+  /**
+   * The amount of entities to load at once.
+   *
+   * @var int $chunkSize
+   */
+  const CHUNK_SIZE = 100;
 
   /**
    * An array of entity types enabled in Multiversion.
@@ -69,34 +76,22 @@ class EntityWorkspaceMigrateSubscriber implements EventSubscriberInterface {
   protected $container;
 
   /**
-   * The config factory.
+   * Constructs a new EntityWorkspaceMigrateSubscriber instance.
    *
-   * @var \Drupal\Core\Config\ConfigFactoryInterface $configFactory
-   */
-  protected $configFactory;
-
-  /**
-   * EntityWorkspaceMigrateSubscriber constructor.
-   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
-   *   The module handler.
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
-   *   Tne entity type manager.
-   * @param \Drupal\multiversion\Workspace\WorkspaceManagerInterface $workspace_manager
+   * @param EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
+   * @param WorkspaceManagerInterface $workspace_manager
    *   The workspace manager.
-   * @param \Drupal\Core\Entity\Query\QueryFactory $entity_query
+   * @param QueryFactory $entity_query
    *   The query factory.
-   * @param \Symfony\Component\DependencyInjection\ContainerInterface $container
-   *   The container.
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
-   *   The config factory.
+   * @param ContainerInterface $container
+   *   The container
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, WorkspaceManagerInterface $workspace_manager, QueryFactory $entity_query, ContainerInterface $container, ConfigFactoryInterface $config_factory) {
+  public function __construct(EntityTypeManagerInterface $entity_type_manager, WorkspaceManagerInterface $workspace_manager, QueryFactory $entity_query, ContainerInterface $container) {
     $this->entityTypeManager = $entity_type_manager;
     $this->workspaceManager = $workspace_manager;
     $this->entityQuery = $entity_query;
     $this->container = $container;
-    $this->configFactory = $config_factory;
-    $this->enabledEntityTypes = $this->configFactory->get('multiversion.settings')->get('enabled_entity_types');
     $this->defaultWorkspaceId = $this->container->getParameter('workspace.default');
     $this->activeWorkspace = $this->workspaceManager->getActiveWorkspace();
   }
@@ -104,13 +99,8 @@ class EntityWorkspaceMigrateSubscriber implements EventSubscriberInterface {
   /**
    * Delete all entities that do not belong to the default workspace.
    */
-  public function onPreMigrate() {
+  public function onPreMigrate(MultiversionManagerEvent $event) {
     $workspaces = $this->workspaceManager->loadMultiple();
-
-    if (!($this->defaultWorkspaceId == $this->activeWorkspace->id())) {
-      // Something went wrong.
-      return;
-    }
 
     // Keep everything for the default workspace.
     unset($workspaces[$this->defaultWorkspaceId]);
@@ -118,14 +108,16 @@ class EntityWorkspaceMigrateSubscriber implements EventSubscriberInterface {
     foreach ($workspaces as $workspace_id => $workspace) {
       $this->workspaceManager->setActiveWorkspace($workspace);
 
-      foreach ($this->enabledEntityTypes as $entity_type) {
-        $entity_ids = $this->entityQuery->get($entity_type)
+      foreach ($event->getEntityTypes() as $entity_type_id => $entity_type) {
+        $entity_ids = $this->entityQuery->get($entity_type_id)
           ->condition('workspace', $workspace_id)
           ->execute();
-        $controller = $this->entityTypeManager->getStorage($entity_type);
-        // TODO: chunks?
-        $entities = $controller->loadMultiple($entity_ids);
-        $controller->delete($entities);
+        $controller = $this->entityTypeManager->getStorage($entity_type_id);
+
+        foreach (array_chunk($entity_ids, self::CHUNK_SIZE) as $chunk_data) {
+          $entities = $controller->loadMultiple($chunk_data);
+          $controller->delete($entities);
+        }
       }
     }
     // Set the active workspace back to the default value.
