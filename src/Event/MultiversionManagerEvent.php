@@ -34,7 +34,7 @@ class MultiversionManagerEvent extends Event {
    * Constructor.
    *
    * @param \Drupal\Core\Entity\ContentEntityTypeInterface[] $entity_types
-   * @param $op
+   * @param string $op
    */
   public function __construct(array $entity_types, $op) {
     $this->entityTypes = $entity_types;
@@ -72,5 +72,4 @@ class MultiversionManagerEvent extends Event {
     }
     return NULL;
   }
-
 }
